@@ -11,5 +11,5 @@ function test_and_exit() {
 
 cargo install cargo-rpm
 
-cargo build --release --all-features; test_and_exit "vector build failed"
+cargo build --release; test_and_exit "vector build failed"
 cargo -v rpm build; test_and_exit "rpm creation failed"

@@ -899,7 +899,7 @@ harness = false
 required-features = ["codecs-benches"]
 
 [package.metadata.rpm.cargo]
-buildflags = ["--release", "--all-features"]
+buildflags = ["--release"]
 
 [package.metadata.rpm.targets]
 vector = { path = "/usr/bin/vector" }
