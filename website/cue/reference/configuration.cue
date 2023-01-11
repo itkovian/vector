@@ -108,6 +108,18 @@ configuration: {
 				"""
 			required:    false
 			type: object: options: {
+				type: {
+					description: """
+						Determines the type of enrichment data that is to be loaded.
+						"""
+					required: true
+					type: string: {
+						enum: {
+							"file":  "Enrich data from a CSV file."
+							"geoip": "Enrich data from a [MaxMind](\(urls.maxmind)) database."
+						}
+					}
+				}
 				file: {
 					required:    true
 					description: "Configuration options for the file that provides the enrichment table."
@@ -216,11 +228,9 @@ configuration: {
 					type: object: options: {
 						path: {
 							description: """
-								Path to the [MaxMind GeoIP2](\(urls.maxmind_geoip2)) or [GeoLite2 binary city
-								database](\(urls.maxmind_geolite2_city)) file (`GeoLite2-City.mmdb`). Other
-								databases, such as the country database, are not supported.
+								Path to the database file.
 								"""
-							required:    true
+							required: true
 							type: string: {
 								examples: ["/path/to/GeoLite2-City.mmdb", "/path/to/GeoLite2-ISP.mmdb"]
 							}

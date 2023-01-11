@@ -167,7 +167,7 @@ pub fn init_test() {
 fn has_tags(metric: &Metric, names: &[&str]) -> bool {
     metric
         .tags()
-        .map(|tags| names.iter().all(|name| tags.contains_key(*name)))
+        .map(|tags| names.iter().all(|name| tags.contains_key(name)))
         .unwrap_or_else(|| names.is_empty())
 }
 
@@ -217,10 +217,7 @@ impl ComponentTester {
                     .map(|m| {
                         let tags = m
                             .tags()
-                            .map(|t| {
-                                let tag_keys = t.keys().cloned().collect::<Vec<_>>();
-                                format!("{{{}}}", tag_keys.join(","))
-                            })
+                            .map(|t| format!("{{{}}}", itertools::join(t.keys(), ",")))
                             .unwrap_or_default();
                         format!("\n    -> Found similar metric `{}{}`", m.name(), tags)
                     })

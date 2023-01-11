@@ -30,7 +30,7 @@ pub struct KafkaSinkConfig {
     pub bootstrap_servers: String,
 
     /// The Kafka topic name to write events to.
-    #[configurable(metadata(templateable))]
+    #[configurable(metadata(docs::templateable))]
     pub topic: String,
 
     /// The log field name or tags key to use for the topic key.
@@ -201,7 +201,7 @@ impl GenerateConfig for KafkaSinkConfig {
             bootstrap_servers: "10.14.22.123:9092,10.14.23.332:9092".to_owned(),
             topic: "topic-1234".to_owned(),
             key_field: Some("user_id".to_owned()),
-            encoding: JsonSerializerConfig::new().into(),
+            encoding: JsonSerializerConfig::default().into(),
             batch: Default::default(),
             compression: KafkaCompression::None,
             auth: Default::default(),

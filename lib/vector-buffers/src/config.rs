@@ -193,8 +193,13 @@ impl DiskUsage {
 #[configurable_component(no_deser)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", tag = "type")]
+#[configurable(metadata(docs::enum_tag_description = "The type of buffer to use."))]
 pub enum BufferType {
     /// A buffer stage backed by an in-memory channel provided by `tokio`.
+    ///
+    /// This is more performant, but less durable. Data will be lost if Vector is restarted
+    /// forcefully or crashes.
+    #[configurable(title = "Events are buffered in memory.")]
     #[serde(rename = "memory")]
     Memory {
         /// The maximum number of events allowed in the buffer.
@@ -207,7 +212,11 @@ pub enum BufferType {
     },
 
     /// A buffer stage backed by an on-disk database, powered by LevelDB.
+    ///
+    /// This is less performant, but more durable. Data that has been synchronized to disk will not
+    /// be lost if Vector is restarted forcefully or crashes.
     #[configurable(deprecated)]
+    #[configurable(title = "Events are buffered on disk. (version 1)")]
     #[serde(rename = "disk_v1")]
     DiskV1 {
         /// The maximum size of the buffer on disk.
@@ -221,6 +230,12 @@ pub enum BufferType {
     },
 
     /// A buffer stage backed by disk.
+    ///
+    /// This is less performant, but more durable. Data that has been synchronized to disk will not
+    /// be lost if Vector is restarted forcefully or crashes.
+    ///
+    /// Data is synchronized to disk every 500ms.
+    #[configurable(title = "Events are buffered on disk. (version 2)")]
     #[serde(rename = "disk")]
     DiskV2 {
         /// The maximum size of the buffer on disk.
@@ -342,13 +357,16 @@ impl BufferType {
 // defined, otherwise, for example, two instances of the same disk buffer type in a single chained
 // buffer topology would try to both open the same buffer files on disk, which wouldn't work or
 // would go horribly wrong.
-
-// TODO: We need a custom implementation of `Configurable` here, I think? in order to capture the
-// "deserialize as a single unnested `BufferType`, or as an array of them", but we might also be
-// able to encode that as an untagged enum as well?
 #[configurable_component]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
+#[configurable(
+    title = "Configures the buffering behavior for this sink.",
+    description = r#"More information about the individual buffer types, and buffer behavior, can be found in the
+[Buffering Model][buffering_model] section.
+
+[buffering_model]: /docs/about/under-the-hood/architecture/buffering-model/"#
+)]
 pub enum BufferConfig {
     /// A single stage buffer topology.
     Single(#[configurable(transparent)] BufferType),

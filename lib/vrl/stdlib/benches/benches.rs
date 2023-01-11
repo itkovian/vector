@@ -18,12 +18,14 @@ criterion_group!(
               chunks,
               compact,
               contains,
+              decode_base16,
               decode_base64,
               decode_percent,
               decrypt,
               // TODO: Cannot pass a Path to bench_function
               //del,
               downcase,
+              encode_base16,
               encode_base64,
               encode_key_value,
               encode_json,
@@ -261,6 +263,15 @@ bench_function! {
 }
 
 bench_function! {
+    decode_base16 => vrl_stdlib::DecodeBase16;
+
+    literal {
+        args: func_args![value: "736f6d652b3d737472696e672f76616c7565"],
+        want: Ok("some+=string/value"),
+    }
+}
+
+bench_function! {
     decode_base64 => vrl_stdlib::DecodeBase64;
 
     literal {
@@ -279,11 +290,34 @@ bench_function! {
 }
 
 bench_function! {
+    decode_mime_q => vrl_stdlib::DecodeMimeQ;
+
+    base_64 {
+        args: func_args![value: "=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?="],
+        want: Ok("Hello, World!"),
+    }
+
+    quoted_printable {
+        args: func_args![value: "Subject: =?iso-8859-1?Q?=A1Hola,_se=F1or!?="],
+        want: Ok("Subject: ¡Hola, señor!"),
+    }
+}
+
+bench_function! {
     downcase => vrl_stdlib::Downcase;
 
     literal {
         args: func_args![value: "FOO"],
         want: Ok("foo")
+    }
+}
+
+bench_function! {
+    encode_base16 => vrl_stdlib::EncodeBase16;
+
+    literal {
+        args: func_args![value: "some+=string/value"],
+        want: Ok("736f6d652b3d737472696e672f76616c7565"),
     }
 }
 

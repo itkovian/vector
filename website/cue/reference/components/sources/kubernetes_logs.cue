@@ -63,7 +63,7 @@ components: sources: kubernetes_logs: {
 						description: "Event field for Container id."
 						required:    false
 						type: string: {
-							default: "kubernetes.container_image"
+							default: "kubernetes.container_id"
 						}
 					}
 					container_image: {
@@ -210,6 +210,28 @@ components: sources: kubernetes_logs: {
 			description: "Optional path to a kubeconfig file readable by Vector. If not set, Vector will try to connect to Kubernetes using in-cluster configuration."
 			required:    false
 			type: string: default: null
+		}
+		ignore_older_secs: {
+			common:      true
+			description: "Ignore files with a data modification date older than the specified number of seconds."
+			required:    false
+			type: uint: {
+				default: null
+				examples: [60 * 10]
+				unit: "seconds"
+			}
+		}
+		read_from: {
+			common:      true
+			description: "In the absence of a checkpoint, this setting tells Vector where to start reading files that are present at startup."
+			required:    false
+			type: string: {
+				default: "beginning"
+				enum: {
+					"beginning": "Read from the beginning of the file."
+					"end":       "Start reading from the current end of the file."
+				}
+			}
 		}
 		self_node_name: {
 			common:      false
