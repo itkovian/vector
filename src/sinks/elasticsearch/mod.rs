@@ -35,6 +35,7 @@ use crate::{
 #[configurable_component]
 #[derive(Clone, Debug)]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "strategy")]
+#[configurable(metadata(docs::enum_tag_description = "The authentication strategy to use."))]
 pub enum ElasticsearchAuth {
     /// HTTP Basic Authentication.
     Basic {
@@ -168,6 +169,27 @@ impl ElasticsearchCommonMode {
             Self::DataStream(value) => Some(value),
             _ => None,
         }
+    }
+}
+
+/// Configuration for api version.
+#[configurable_component]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields, rename_all = "snake_case")]
+pub enum ElasticsearchApiVersion {
+    /// Auto-detect the api version. Will fail if endpoint isn't reachable.
+    Auto,
+    /// Use the Elasticsearch 6.x API.
+    V6,
+    /// Use the Elasticsearch 7.x API.
+    V7,
+    /// Use the Elasticsearch 8.x API.
+    V8,
+}
+
+impl Default for ElasticsearchApiVersion {
+    fn default() -> Self {
+        Self::Auto
     }
 }
 

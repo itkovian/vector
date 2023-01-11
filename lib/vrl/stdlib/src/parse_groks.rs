@@ -32,7 +32,7 @@ impl DiagnosticMessage for Error {
         match self {
             Error::InvalidGrokPattern(err) => {
                 vec![Label::primary(
-                    format!("grok pattern error: {}", err),
+                    format!("grok pattern error: {err}"),
                     Span::default(),
                 )]
             }
@@ -166,9 +166,13 @@ impl Function for ParseGroks {
 
         for src in alias_sources {
             let path = Path::new(&src);
-            let file = File::open(&path).unwrap();
+            let file = File::open(&path).map_err(|_| {
+                vrl::function::Error::InvalidAliasSource { path: path.to_owned() }
+            })?;
             let reader = BufReader::new(file);
-            let mut src_aliases = serde_json::from_reader(reader).unwrap();
+            let mut src_aliases = serde_json::from_reader(reader).map_err(|_| {
+                vrl::function::Error::InvalidAliasSource { path: path.to_owned() }
+            })?;
 
             aliases.append(&mut src_aliases);
         }
@@ -193,7 +197,7 @@ impl FunctionExpression for ParseGroksFn {
         let bytes = value.try_bytes_utf8_lossy()?;
 
         let v = parse_grok::parse_grok(bytes.as_ref(), &self.grok_rules)
-            .map_err(|err| format!("unable to parse grok: {}", err))?;
+            .map_err(|err| format!("unable to parse grok: {err}"))?;
 
         Ok(v)
     }
@@ -268,6 +272,31 @@ mod test {
                     "_status": "%{POSINT:status}",
                     "_message": "%{GREEDYDATA:message}"
                 })
+            ],
+            want: Ok(Value::from(btreemap! {
+                "timestamp" => "2020-10-02T23:22:12.223222Z",
+                "level" => "info",
+                "status" => "200",
+                "message" => "hello world"
+            })),
+            tdef: TypeDef::object(Collection::any()).fallible(),
+        }
+
+        presence_of_alias_sources_argument {
+            args: func_args![
+                value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
+                patterns: Value::Array(vec![
+                    "%{common_prefix} %{_status} %{_message}".into(),
+                    "%{common_prefix} %{_message}".into(),
+                    ]),
+                aliases: value!({
+                    "common_prefix": "%{_timestamp} %{_loglevel}",
+                    "_timestamp": "%{TIMESTAMP_ISO8601:timestamp}",
+                    "_loglevel": "%{LOGLEVEL:level}",
+                    "_status": "%{POSINT:status}",
+                    "_message": "%{GREEDYDATA:message}"
+                }),
+                alias_sources: Value::Array(vec![]),
             ],
             want: Ok(Value::from(btreemap! {
                 "timestamp" => "2020-10-02T23:22:12.223222Z",

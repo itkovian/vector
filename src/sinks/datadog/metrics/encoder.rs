@@ -393,8 +393,11 @@ fn get_namespaced_name(metric: &Metric, default_namespace: &Option<Arc<str>>) ->
 
 fn encode_tags(tags: &MetricTags) -> Vec<String> {
     let mut pairs: Vec<_> = tags
-        .iter()
-        .map(|(name, value)| format!("{}:{}", name, value))
+        .iter_all()
+        .map(|(name, value)| match value {
+            Some(value) => format!("{}:{}", name, value),
+            None => name.into(),
+        })
         .collect();
     pairs.sort();
     pairs
@@ -667,7 +670,7 @@ mod tests {
     };
     use vector_core::{
         config::log_schema,
-        event::{Metric, MetricKind, MetricTags, MetricValue},
+        event::{metric::TagValue, Metric, MetricKind, MetricTags, MetricValue},
         metric_tags,
         metrics::AgentDDSketch,
     };
@@ -726,7 +729,9 @@ mod tests {
         metric_tags! {
             "normal_tag" => "value",
             "true_tag" => "true",
-            "empty_tag" => "",
+            "empty_tag" => TagValue::Bare,
+            "multi_value" => "one",
+            "multi_value" => "two",
         }
     }
 
@@ -734,7 +739,13 @@ mod tests {
     fn test_encode_tags() {
         assert_eq!(
             encode_tags(&tags()),
-            vec!["empty_tag:", "normal_tag:value", "true_tag:true"]
+            vec![
+                "empty_tag",
+                "multi_value:one",
+                "multi_value:two",
+                "normal_tag:value",
+                "true_tag:true",
+            ]
         );
     }
 

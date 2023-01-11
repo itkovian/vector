@@ -19,7 +19,7 @@ use bytes::Buf;
 use codecs::{encoding::FramingConfig, TextSerializerConfig};
 use flate2::read::MultiGzDecoder;
 use futures::{stream, Stream};
-use pretty_assertions::assert_eq;
+use similar_asserts::assert_eq;
 use tokio_stream::StreamExt;
 use vector_core::{
     config::proxy::ProxyConfig,
@@ -388,7 +388,7 @@ fn config(bucket: &str, batch_size: usize) -> S3SinkConfig {
         filename_extension: None,
         options: S3Options::default(),
         region: RegionOrEndpoint::with_both("minio", s3_address()),
-        encoding: (None::<FramingConfig>, TextSerializerConfig::new()).into(),
+        encoding: (None::<FramingConfig>, TextSerializerConfig::default()).into(),
         compression: Compression::None,
         batch,
         request: TowerRequestConfig::default(),

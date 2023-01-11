@@ -57,9 +57,8 @@ impl Serialize for Value {
             Self::Integer(i) => serializer.serialize_i64(*i),
             Self::Float(f) => serializer.serialize_f64(f.into_inner()),
             Self::Boolean(b) => serializer.serialize_bool(*b),
-            Self::Bytes(_) | Self::Timestamp(_) => {
-                serializer.serialize_str(&self.to_string_lossy())
-            }
+            Self::Bytes(b) => serializer.serialize_str(String::from_utf8_lossy(b).as_ref()),
+            Self::Timestamp(ts) => serializer.serialize_str(&timestamp_to_string(ts)),
             Self::Regex(regex) => serializer.serialize_str(regex.as_str()),
             Self::Object(m) => serializer.collect_map(m),
             Self::Array(a) => serializer.collect_seq(a),
@@ -245,17 +244,17 @@ mod test {
     fn json_value_to_vector_value_to_json_value() {
         const FIXTURE_ROOT: &str = "tests/data/fixtures/value";
 
-        std::fs::read_dir(FIXTURE_ROOT)
-            .unwrap()
-            .for_each(|type_dir| match type_dir {
-                Ok(type_name) => {
+        for type_dir in std::fs::read_dir(FIXTURE_ROOT).unwrap() {
+            type_dir.map_or_else(
+                |_| panic!("This test should never read Err'ing type folders."),
+                |type_name| {
                     let path = type_name.path();
-                    std::fs::read_dir(path)
-                        .unwrap()
-                        .for_each(|fixture_file| match fixture_file {
-                            Ok(fixture_file) => {
+                    for fixture_file in std::fs::read_dir(path).unwrap() {
+                        fixture_file.map_or_else(
+                            |_| panic!("This test should never read Err'ing test fixtures."),
+                            |fixture_file| {
                                 let path = fixture_file.path();
-                                let buf = parse_artifact(&path).unwrap();
+                                let buf = parse_artifact(path).unwrap();
 
                                 let serde_value: serde_json::Value =
                                     serde_json::from_slice(&buf).unwrap();
@@ -275,7 +274,9 @@ mod test {
                                     Value::Array { .. } => expected_type.eq("array"),
                                     Value::Object(_) => expected_type.eq("map"),
                                     Value::Null => expected_type.eq("null"),
-                                    _ => unreachable!("You need to add a new type handler here."),
+                                    _ => {
+                                        unreachable!("You need to add a new type handler here.")
+                                    }
                                 };
                                 assert!(
                                     is_match,
@@ -283,11 +284,11 @@ mod test {
                                     expected_type, vector_value
                                 );
                                 let _value: serde_json::Value = vector_value.try_into().unwrap();
-                            }
-                            _ => panic!("This test should never read Err'ing test fixtures."),
-                        });
-                }
-                _ => panic!("This test should never read Err'ing type folders."),
-            });
+                            },
+                        );
+                    }
+                },
+            );
+        }
     }
 }

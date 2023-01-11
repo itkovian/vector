@@ -14,13 +14,18 @@ use codecs::{
 use futures::{Stream, StreamExt};
 use http::HeaderMap;
 use indoc::indoc;
+use lookup::owned_value_path;
 use lookup::LookupBuf;
 use ordered_float::NotNan;
-use pretty_assertions::assert_eq;
 use prost::Message;
 use quickcheck::{Arbitrary, Gen, QuickCheck, TestResult};
+use similar_asserts::assert_eq;
 use value::Kind;
-use vector_core::config::LogNamespace;
+use vector_core::{
+    config::LogNamespace,
+    event::{metric::TagValue, MetricTags},
+    metric_tags,
+};
 use vrl::prelude::Collection;
 
 use crate::schema::Definition;
@@ -46,16 +51,16 @@ use crate::{
 };
 
 fn test_logs_schema_definition() -> schema::Definition {
-    schema::Definition::empty_legacy_namespace().with_field(
-        "a log field",
+    schema::Definition::empty_legacy_namespace().with_event_field(
+        &owned_value_path!("a log field"),
         Kind::integer().or_bytes(),
         Some("log field"),
     )
 }
 
 fn test_metrics_schema_definition() -> schema::Definition {
-    schema::Definition::empty_legacy_namespace().with_field(
-        "a schema tag",
+    schema::Definition::empty_legacy_namespace().with_event_field(
+        &owned_value_path!("a schema tag"),
         Kind::boolean().or_null(),
         Some("tag"),
     )
@@ -748,8 +753,13 @@ async fn decode_series_endpoint_v1() {
             );
             assert_eq!(metric.kind(), MetricKind::Absolute);
             assert_eq!(*metric.value(), MetricValue::Gauge { value: 3.14 });
-            assert_tag(metric, "host", "random_host");
-            assert_tag(metric, "foo", "bar");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "random_host",
+                    "foo" => "bar",
+                ),
+            );
 
             assert_eq!(
                 &events[0].metadata().datadog_api_key().as_ref().unwrap()[..],
@@ -765,8 +775,13 @@ async fn decode_series_endpoint_v1() {
             );
             assert_eq!(metric.kind(), MetricKind::Absolute);
             assert_eq!(*metric.value(), MetricValue::Gauge { value: 3.1415 });
-            assert_tag(metric, "host", "random_host");
-            assert_tag(metric, "foo", "bar");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "random_host",
+                    "foo" => "bar",
+                ),
+            );
 
             assert_eq!(
                 &events[1].metadata().datadog_api_key().as_ref().unwrap()[..],
@@ -787,8 +802,13 @@ async fn decode_series_endpoint_v1() {
                     value: 3.14 * (10_f64)
                 }
             );
-            assert_tag(metric, "host", "another_random_host");
-            assert_tag(metric, "foo", "bar:baz");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "another_random_host",
+                    "foo" => "bar:baz",
+                ),
+            );
 
             assert_eq!(
                 &events[2].metadata().datadog_api_key().as_ref().unwrap()[..],
@@ -808,8 +828,13 @@ async fn decode_series_endpoint_v1() {
                     value: 16777216_f64
                 }
             );
-            assert_tag(metric, "host", "a_host");
-            assert_tag(metric, "foobar", "");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "a_host",
+                    "foobar" => TagValue::Bare,
+                ),
+            );
 
             metric = events[4].as_metric();
             assert_eq!(metric.name(), "disk.free");
@@ -849,7 +874,11 @@ async fn decode_sketches() {
         let mut buf = Vec::new();
         let sketch = ddmetric_proto::sketch_payload::Sketch {
             metric: "dd_sketch".to_string(),
-            tags: vec!["foo:bar".to_string(), "foobar".to_string()],
+            tags: vec![
+                "foo:bar".to_string(),
+                "foo:baz".to_string(),
+                "foobar".to_string(),
+            ],
             host: "a_host".to_string(),
             distributions: Vec::new(),
             dogsketches: vec![ddmetric_proto::sketch_payload::sketch::Dogsketch {
@@ -897,10 +926,15 @@ async fn decode_sketches() {
                 Some(Utc.ymd(2018, 11, 14).and_hms(8, 9, 10))
             );
             assert_eq!(metric.kind(), MetricKind::Incremental);
-            assert_tag(metric, "host", "a_host");
-            assert_tag(metric, "foo", "bar");
-            assert_tag(metric, "foobar", "");
-
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "a_host",
+                    "foo" => "bar",
+                    "foo" => "baz",
+                    "foobar" => TagValue::Bare,
+                ),
+            );
             let s = metric.value();
             assert!(matches!(s, MetricValue::Sketch { .. }));
             if let MetricValue::Sketch {
@@ -1262,8 +1296,13 @@ async fn split_outputs() {
             );
             assert_eq!(metric.kind(), MetricKind::Absolute);
             assert_eq!(*metric.value(), MetricValue::Gauge { value: 3.14 });
-            assert_tag(metric, "host", "random_host");
-            assert_tag(metric, "foo", "bar");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "random_host",
+                    "foo" => "bar",
+                ),
+            );
             assert_eq!(
                 &event.metadata().datadog_api_key().as_ref().unwrap()[..],
                 "abcdefgh12345678abcdefgh12345678"
@@ -1324,14 +1363,46 @@ fn test_config_outputs() {
                     None,
                     Some(
                         schema::Definition::empty_legacy_namespace()
-                            .with_field("message", Kind::bytes(), Some("message"))
-                            .with_field("status", Kind::bytes(), Some("severity"))
-                            .with_field("timestamp", Kind::timestamp(), Some("timestamp"))
-                            .with_field("hostname", Kind::bytes(), Some("host"))
-                            .with_field("service", Kind::bytes(), Some("service"))
-                            .with_field("ddsource", Kind::bytes(), Some("source"))
-                            .with_field("ddtags", Kind::bytes(), Some("tags"))
-                            .with_field("source_type", Kind::bytes(), None),
+                            .with_event_field(
+                                &owned_value_path!("message"),
+                                Kind::bytes(),
+                                Some("message"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("status"),
+                                Kind::bytes(),
+                                Some("severity"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("timestamp"),
+                                Kind::timestamp(),
+                                Some("timestamp"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("hostname"),
+                                Kind::bytes(),
+                                Some("host"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("service"),
+                                Kind::bytes(),
+                                Some("service"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("ddsource"),
+                                Kind::bytes(),
+                                Some("source"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("ddtags"),
+                                Kind::bytes(),
+                                Some("tags"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("source_type"),
+                                Kind::bytes(),
+                                None,
+                            ),
                     ),
                 )]),
             },
@@ -1345,14 +1416,46 @@ fn test_config_outputs() {
                     None,
                     Some(
                         schema::Definition::empty_legacy_namespace()
-                            .with_field("message", Kind::bytes(), Some("message"))
-                            .with_field("status", Kind::bytes(), Some("severity"))
-                            .with_field("timestamp", Kind::timestamp(), Some("timestamp"))
-                            .with_field("hostname", Kind::bytes(), Some("host"))
-                            .with_field("service", Kind::bytes(), Some("service"))
-                            .with_field("ddsource", Kind::bytes(), Some("source"))
-                            .with_field("ddtags", Kind::bytes(), Some("tags"))
-                            .with_field("source_type", Kind::bytes(), None),
+                            .with_event_field(
+                                &owned_value_path!("message"),
+                                Kind::bytes(),
+                                Some("message"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("status"),
+                                Kind::bytes(),
+                                Some("severity"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("timestamp"),
+                                Kind::timestamp(),
+                                Some("timestamp"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("hostname"),
+                                Kind::bytes(),
+                                Some("host"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("service"),
+                                Kind::bytes(),
+                                Some("service"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("ddsource"),
+                                Kind::bytes(),
+                                Some("source"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("ddtags"),
+                                Kind::bytes(),
+                                Some("tags"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("source_type"),
+                                Kind::bytes(),
+                                None,
+                            ),
                     ),
                 )]),
             },
@@ -1367,14 +1470,46 @@ fn test_config_outputs() {
                         Some(LOGS),
                         Some(
                             schema::Definition::empty_legacy_namespace()
-                                .with_field("message", Kind::bytes(), Some("message"))
-                                .with_field("status", Kind::bytes(), Some("severity"))
-                                .with_field("timestamp", Kind::timestamp(), Some("timestamp"))
-                                .with_field("hostname", Kind::bytes(), Some("host"))
-                                .with_field("service", Kind::bytes(), Some("service"))
-                                .with_field("ddsource", Kind::bytes(), Some("source"))
-                                .with_field("ddtags", Kind::bytes(), Some("tags"))
-                                .with_field("source_type", Kind::bytes(), None),
+                                .with_event_field(
+                                    &owned_value_path!("message"),
+                                    Kind::bytes(),
+                                    Some("message"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("status"),
+                                    Kind::bytes(),
+                                    Some("severity"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("timestamp"),
+                                    Kind::timestamp(),
+                                    Some("timestamp"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("hostname"),
+                                    Kind::bytes(),
+                                    Some("host"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("service"),
+                                    Kind::bytes(),
+                                    Some("service"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("ddsource"),
+                                    Kind::bytes(),
+                                    Some("source"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("ddtags"),
+                                    Kind::bytes(),
+                                    Some("tags"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("source_type"),
+                                    Kind::bytes(),
+                                    None,
+                                ),
                         ),
                     ),
                     (Some(METRICS), None),
@@ -1391,14 +1526,17 @@ fn test_config_outputs() {
                     None,
                     Some(
                         schema::Definition::empty_legacy_namespace()
-                            .with_field("timestamp", Kind::json().or_timestamp(), None)
-                            .with_field("source_type", Kind::json(), None)
-                            .with_field("ddsource", Kind::json(), None)
-                            .with_field("ddtags", Kind::json(), None)
-                            .with_field("hostname", Kind::json(), None)
-                            .with_field("message", Kind::json(), None)
-                            .with_field("service", Kind::json(), None)
-                            .with_field("status", Kind::json(), None)
+                            .with_event_field(
+                                &owned_value_path!("timestamp"),
+                                Kind::json().or_timestamp(),
+                                None,
+                            )
+                            .with_event_field(&owned_value_path!("source_type"), Kind::json(), None)
+                            .with_event_field(&owned_value_path!("ddsource"), Kind::json(), None)
+                            .with_event_field(&owned_value_path!("ddtags"), Kind::json(), None)
+                            .with_event_field(&owned_value_path!("hostname"), Kind::json(), None)
+                            .with_event_field(&owned_value_path!("service"), Kind::json(), None)
+                            .with_event_field(&owned_value_path!("status"), Kind::json(), None)
                             .unknown_fields(Kind::json()),
                     ),
                 )]),
@@ -1414,14 +1552,29 @@ fn test_config_outputs() {
                         Some(LOGS),
                         Some(
                             schema::Definition::empty_legacy_namespace()
-                                .with_field("timestamp", Kind::json().or_timestamp(), None)
-                                .with_field("source_type", Kind::json(), None)
-                                .with_field("ddsource", Kind::json(), None)
-                                .with_field("ddtags", Kind::json(), None)
-                                .with_field("hostname", Kind::json(), None)
-                                .with_field("message", Kind::json(), None)
-                                .with_field("service", Kind::json(), None)
-                                .with_field("status", Kind::json(), None)
+                                .with_event_field(
+                                    &owned_value_path!("timestamp"),
+                                    Kind::json().or_timestamp(),
+                                    None,
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("source_type"),
+                                    Kind::json(),
+                                    None,
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("ddsource"),
+                                    Kind::json(),
+                                    None,
+                                )
+                                .with_event_field(&owned_value_path!("ddtags"), Kind::json(), None)
+                                .with_event_field(
+                                    &owned_value_path!("hostname"),
+                                    Kind::json(),
+                                    None,
+                                )
+                                .with_event_field(&owned_value_path!("service"), Kind::json(), None)
+                                .with_event_field(&owned_value_path!("status"), Kind::json(), None)
                                 .unknown_fields(Kind::json()),
                         ),
                     ),
@@ -1440,37 +1593,57 @@ fn test_config_outputs() {
                     None,
                     Some(
                         schema::Definition::empty_legacy_namespace()
-                            .with_field("message", Kind::bytes(), Some("message"))
-                            .with_field("timestamp", Kind::timestamp(), Some("timestamp"))
-                            .with_field("hostname", Kind::bytes(), None)
-                            .optional_field("severity", Kind::bytes(), Some("severity"))
-                            .optional_field("facility", Kind::bytes(), None)
-                            .optional_field("version", Kind::integer(), None)
-                            .optional_field("appname", Kind::bytes(), None)
-                            .optional_field("msgid", Kind::bytes(), None)
-                            .optional_field("procid", Kind::integer().or_bytes(), None)
-                            .with_field(
-                                "source_type",
+                            .with_event_field(
+                                &owned_value_path!("message"),
+                                Kind::bytes(),
+                                Some("message"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("timestamp"),
+                                Kind::timestamp(),
+                                Some("timestamp"),
+                            )
+                            .with_event_field(
+                                &owned_value_path!("hostname"),
+                                Kind::bytes(),
+                                Some("host"),
+                            )
+                            .optional_field(
+                                &owned_value_path!("severity"),
+                                Kind::bytes(),
+                                Some("severity"),
+                            )
+                            .optional_field(&owned_value_path!("facility"), Kind::bytes(), None)
+                            .optional_field(&owned_value_path!("version"), Kind::integer(), None)
+                            .optional_field(&owned_value_path!("appname"), Kind::bytes(), None)
+                            .optional_field(&owned_value_path!("msgid"), Kind::bytes(), None)
+                            .optional_field(
+                                &owned_value_path!("procid"),
+                                Kind::integer().or_bytes(),
+                                None,
+                            )
+                            .with_event_field(
+                                &owned_value_path!("source_type"),
                                 Kind::bytes().or_object(Collection::from_unknown(Kind::bytes())),
                                 None,
                             )
-                            .with_field(
-                                "ddsource",
+                            .with_event_field(
+                                &owned_value_path!("ddsource"),
                                 Kind::bytes().or_object(Collection::from_unknown(Kind::bytes())),
                                 None,
                             )
-                            .with_field(
-                                "ddtags",
+                            .with_event_field(
+                                &owned_value_path!("ddtags"),
                                 Kind::bytes().or_object(Collection::from_unknown(Kind::bytes())),
                                 None,
                             )
-                            .with_field(
-                                "service",
+                            .with_event_field(
+                                &owned_value_path!("service"),
                                 Kind::bytes().or_object(Collection::from_unknown(Kind::bytes())),
                                 None,
                             )
-                            .with_field(
-                                "status",
+                            .with_event_field(
+                                &owned_value_path!("status"),
                                 Kind::bytes().or_object(Collection::from_unknown(Kind::bytes())),
                                 None,
                             )
@@ -1492,41 +1665,65 @@ fn test_config_outputs() {
                         Some(LOGS),
                         Some(
                             schema::Definition::empty_legacy_namespace()
-                                .with_field("message", Kind::bytes(), Some("message"))
-                                .with_field("timestamp", Kind::timestamp(), Some("timestamp"))
-                                .with_field("hostname", Kind::bytes(), None)
-                                .optional_field("severity", Kind::bytes(), Some("severity"))
-                                .optional_field("facility", Kind::bytes(), None)
-                                .optional_field("version", Kind::integer(), None)
-                                .optional_field("appname", Kind::bytes(), None)
-                                .optional_field("msgid", Kind::bytes(), None)
-                                .optional_field("procid", Kind::integer().or_bytes(), None)
-                                .with_field(
-                                    "source_type",
+                                .with_event_field(
+                                    &owned_value_path!("message"),
+                                    Kind::bytes(),
+                                    Some("message"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("timestamp"),
+                                    Kind::timestamp(),
+                                    Some("timestamp"),
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("hostname"),
+                                    Kind::bytes(),
+                                    Some("host"),
+                                )
+                                .optional_field(
+                                    &owned_value_path!("severity"),
+                                    Kind::bytes(),
+                                    Some("severity"),
+                                )
+                                .optional_field(&owned_value_path!("facility"), Kind::bytes(), None)
+                                .optional_field(
+                                    &owned_value_path!("version"),
+                                    Kind::integer(),
+                                    None,
+                                )
+                                .optional_field(&owned_value_path!("appname"), Kind::bytes(), None)
+                                .optional_field(&owned_value_path!("msgid"), Kind::bytes(), None)
+                                .optional_field(
+                                    &owned_value_path!("procid"),
+                                    Kind::integer().or_bytes(),
+                                    None,
+                                )
+                                .with_event_field(
+                                    &owned_value_path!("source_type"),
                                     Kind::bytes()
                                         .or_object(Collection::from_unknown(Kind::bytes())),
                                     None,
                                 )
-                                .with_field(
-                                    "ddsource",
+                                .with_event_field(
+                                    &owned_value_path!("ddsource"),
                                     Kind::bytes()
                                         .or_object(Collection::from_unknown(Kind::bytes())),
                                     None,
                                 )
-                                .with_field(
-                                    "ddtags",
+                                .with_event_field(
+                                    &owned_value_path!("ddtags"),
                                     Kind::bytes()
                                         .or_object(Collection::from_unknown(Kind::bytes())),
                                     None,
                                 )
-                                .with_field(
-                                    "service",
+                                .with_event_field(
+                                    &owned_value_path!("service"),
                                     Kind::bytes()
                                         .or_object(Collection::from_unknown(Kind::bytes())),
                                     None,
                                 )
-                                .with_field(
-                                    "status",
+                                .with_event_field(
+                                    &owned_value_path!("status"),
                                     Kind::bytes()
                                         .or_object(Collection::from_unknown(Kind::bytes())),
                                     None,
@@ -1612,7 +1809,7 @@ async fn decode_series_endpoint_v2() {
                     name: "another_random_host".to_string(),
                 }],
                 metric: "another_namespace.dd_rate".to_string(),
-                tags: vec!["foo:bar:baz".to_string()],
+                tags: vec!["foo:bar:baz".to_string(), "foo:bizbaz".to_string()],
                 points: vec![ddmetric_proto::metric_payload::MetricPoint {
                     value: 3.14,
                     timestamp: 1542182950,
@@ -1672,9 +1869,14 @@ async fn decode_series_endpoint_v2() {
             );
             assert_eq!(metric.kind(), MetricKind::Absolute);
             assert_eq!(*metric.value(), MetricValue::Gauge { value: 3.14 });
-            assert_tag(metric, "host", "random_host");
-            assert_tag(metric, "foo", "bar");
-            assert_tag(metric, "source_type_name", "a_random_source_type_name");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "random_host",
+                    "foo" => "bar",
+                    "source_type_name" => "a_random_source_type_name",
+                ),
+            );
             assert_eq!(metric.namespace(), Some("namespace"));
 
             assert_eq!(
@@ -1690,9 +1892,14 @@ async fn decode_series_endpoint_v2() {
             );
             assert_eq!(metric.kind(), MetricKind::Absolute);
             assert_eq!(*metric.value(), MetricValue::Gauge { value: 3.1415 });
-            assert_tag(metric, "host", "random_host");
-            assert_tag(metric, "foo", "bar");
-            assert_tag(metric, "source_type_name", "a_random_source_type_name");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "random_host",
+                    "foo" => "bar",
+                    "source_type_name" => "a_random_source_type_name",
+                ),
+            );
             assert_eq!(metric.namespace(), Some("namespace"));
 
             assert_eq!(
@@ -1713,12 +1920,14 @@ async fn decode_series_endpoint_v2() {
                     value: 3.14 * (10_f64)
                 }
             );
-            assert_tag(metric, "host", "another_random_host");
-            assert_tag(metric, "foo", "bar:baz");
-            assert_tag(
+            assert_tags(
                 metric,
-                "source_type_name",
-                "another_random_source_type_name",
+                metric_tags!(
+                    "host" => "another_random_host",
+                    "foo" => "bar:baz",
+                    "foo" => "bizbaz",
+                    "source_type_name" => "another_random_source_type_name",
+                ),
             );
             assert_eq!(metric.namespace(), Some("another_namespace"));
 
@@ -1740,9 +1949,14 @@ async fn decode_series_endpoint_v2() {
                     value: 16777216_f64
                 }
             );
-            assert_tag(metric, "host", "a_host");
-            assert_tag(metric, "foobar", "");
-            assert_tag(metric, "source_type_name", "a_very_random_source_type_name");
+            assert_tags(
+                metric,
+                metric_tags!(
+                    "host" => "a_host",
+                    "foobar" => TagValue::Bare,
+                    "source_type_name" => "a_very_random_source_type_name",
+                ),
+            );
             assert_eq!(metric.namespace(), None);
 
             assert_eq!(
@@ -1777,41 +1991,28 @@ fn test_output_schema_definition_json_vector_namespace() {
         definition,
         Definition::new_with_default_metadata(Kind::json(), [LogNamespace::Vector])
             .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.ddsource").unwrap(),
+                &owned_value_path!("datadog_agent", "ddsource"),
+                Kind::bytes()
+            )
+            .with_metadata_field(&owned_value_path!("datadog_agent", "ddtags"), Kind::bytes())
+            .with_metadata_field(
+                &owned_value_path!("datadog_agent", "hostname"),
                 Kind::bytes()
             )
             .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.ddtags").unwrap(),
+                &owned_value_path!("datadog_agent", "service"),
                 Kind::bytes()
             )
+            .with_metadata_field(&owned_value_path!("datadog_agent", "status"), Kind::bytes())
             .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.hostname").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.message").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.service").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.status").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.timestamp").unwrap(),
+                &owned_value_path!("datadog_agent", "timestamp"),
                 Kind::timestamp()
             )
             .with_metadata_field(
-                LookupBuf::from_str("vector.ingest_timestamp").unwrap(),
+                &owned_value_path!("vector", "ingest_timestamp"),
                 Kind::timestamp()
             )
-            .with_metadata_field(
-                LookupBuf::from_str("vector.source_type").unwrap(),
-                Kind::bytes()
-            )
+            .with_metadata_field(&owned_value_path!("vector", "source_type"), Kind::bytes())
     )
 }
 
@@ -1831,41 +2032,28 @@ fn test_output_schema_definition_bytes_vector_namespace() {
         definition,
         Definition::new_with_default_metadata(Kind::bytes(), [LogNamespace::Vector])
             .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.ddsource").unwrap(),
+                &owned_value_path!("datadog_agent", "ddsource"),
+                Kind::bytes()
+            )
+            .with_metadata_field(&owned_value_path!("datadog_agent", "ddtags"), Kind::bytes())
+            .with_metadata_field(
+                &owned_value_path!("datadog_agent", "hostname"),
                 Kind::bytes()
             )
             .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.ddtags").unwrap(),
+                &owned_value_path!("datadog_agent", "service"),
                 Kind::bytes()
             )
+            .with_metadata_field(&owned_value_path!("datadog_agent", "status"), Kind::bytes())
             .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.hostname").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.message").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.service").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.status").unwrap(),
-                Kind::bytes()
-            )
-            .with_metadata_field(
-                LookupBuf::from_str("datadog_agent.timestamp").unwrap(),
+                &owned_value_path!("datadog_agent", "timestamp"),
                 Kind::timestamp()
             )
             .with_metadata_field(
-                LookupBuf::from_str("vector.ingest_timestamp").unwrap(),
+                &owned_value_path!("vector", "ingest_timestamp"),
                 Kind::timestamp()
             )
-            .with_metadata_field(
-                LookupBuf::from_str("vector.source_type").unwrap(),
-                Kind::bytes()
-            )
+            .with_metadata_field(&owned_value_path!("vector", "source_type"), Kind::bytes())
             .with_meaning(LookupBuf::root(), "message")
     )
 }
@@ -1885,14 +2073,17 @@ fn test_output_schema_definition_json_legacy_namespace() {
     assert_eq!(
         definition,
         Definition::new_with_default_metadata(Kind::json(), [LogNamespace::Legacy])
-            .with_field("timestamp", Kind::json().or_timestamp(), None)
-            .with_field("ddsource", Kind::json(), None)
-            .with_field("ddtags", Kind::json(), None)
-            .with_field("hostname", Kind::json(), None)
-            .with_field("message", Kind::json(), None)
-            .with_field("service", Kind::json(), None)
-            .with_field("source_type", Kind::json(), None)
-            .with_field("status", Kind::json(), None)
+            .with_event_field(
+                &owned_value_path!("timestamp"),
+                Kind::json().or_timestamp(),
+                None
+            )
+            .with_event_field(&owned_value_path!("ddsource"), Kind::json(), None)
+            .with_event_field(&owned_value_path!("ddtags"), Kind::json(), None)
+            .with_event_field(&owned_value_path!("hostname"), Kind::json(), None)
+            .with_event_field(&owned_value_path!("service"), Kind::json(), None)
+            .with_event_field(&owned_value_path!("source_type"), Kind::json(), None)
+            .with_event_field(&owned_value_path!("status"), Kind::json(), None)
     )
 }
 
@@ -1914,24 +2105,37 @@ fn test_output_schema_definition_bytes_legacy_namespace() {
             Kind::object(Collection::empty()),
             [LogNamespace::Legacy]
         )
-        .with_field("ddsource", Kind::bytes(), Some("source"))
-        .with_field("ddtags", Kind::bytes(), Some("tags"))
-        .with_field("hostname", Kind::bytes(), Some("host"))
-        .with_field("message", Kind::bytes(), Some("message"))
-        .with_field("service", Kind::bytes(), Some("service"))
-        .with_field("source_type", Kind::bytes(), None)
-        .with_field("status", Kind::bytes(), Some("severity"))
-        .with_field("timestamp", Kind::timestamp(), Some("timestamp"))
+        .with_event_field(
+            &owned_value_path!("ddsource"),
+            Kind::bytes(),
+            Some("source")
+        )
+        .with_event_field(&owned_value_path!("ddtags"), Kind::bytes(), Some("tags"))
+        .with_event_field(&owned_value_path!("hostname"), Kind::bytes(), Some("host"))
+        .with_event_field(
+            &owned_value_path!("message"),
+            Kind::bytes(),
+            Some("message")
+        )
+        .with_event_field(
+            &owned_value_path!("service"),
+            Kind::bytes(),
+            Some("service")
+        )
+        .with_event_field(&owned_value_path!("source_type"), Kind::bytes(), None)
+        .with_event_field(
+            &owned_value_path!("status"),
+            Kind::bytes(),
+            Some("severity")
+        )
+        .with_event_field(
+            &owned_value_path!("timestamp"),
+            Kind::timestamp(),
+            Some("timestamp")
+        )
     )
 }
 
-fn assert_tag(metric: &Metric, tag: &str, value: &str) {
-    assert_eq!(
-        metric
-            .tags()
-            .expect("Missing tags")
-            .get(tag)
-            .map(AsRef::as_ref),
-        Some(value)
-    );
+fn assert_tags(metric: &Metric, tags: MetricTags) {
+    assert_eq!(metric.tags().expect("Missing tags"), &tags);
 }

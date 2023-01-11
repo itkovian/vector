@@ -1,4 +1,4 @@
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use chrono::Utc;
 use codecs::{
     decoding::{DeserializerConfig, FramingConfig},
@@ -6,10 +6,17 @@ use codecs::{
 };
 use futures::StreamExt;
 use listenfd::ListenFd;
+use lookup::{
+    lookup_v2::{parse_value_path, OptionalValuePath},
+    owned_value_path, path,
+};
 use tokio_util::codec::FramedRead;
 use vector_common::internal_event::{ByteSize, BytesReceived, InternalEventHandle as _, Protocol};
-use vector_config::configurable_component;
-use vector_core::ByteSizeOf;
+use vector_config::{configurable_component, NamedComponent};
+use vector_core::{
+    config::{LegacyKey, LogNamespace},
+    EstimatedJsonEncodedSizeOf,
+};
 
 use crate::{
     codecs::Decoder,
@@ -21,6 +28,7 @@ use crate::{
     serde::{default_decoding, default_framing_message_based},
     shutdown::ShutdownSignal,
     sources::{
+        socket::SocketConfig,
         util::net::{try_bind_udp_socket, SocketListenAddr},
         Source,
     },
@@ -48,14 +56,14 @@ pub struct UdpConfig {
     /// By default, the [global `log_schema.host_key` option][global_host_key] is used.
     ///
     /// [global_host_key]: https://vector.dev/docs/reference/configuration/global-options/#log_schema.host_key
-    host_key: Option<String>,
+    host_key: Option<OptionalValuePath>,
 
     /// Overrides the name of the log field used to add the peer host's port to each event.
     ///
     /// The value will be the peer host's port i.e. `9000`.
     ///
     /// By default, `"port"` is used.
-    port_key: Option<String>,
+    port_key: Option<OptionalValuePath>,
 
     /// The size, in bytes, of the receive buffer used for the listening socket.
     ///
@@ -69,11 +77,19 @@ pub struct UdpConfig {
     #[configurable(derived)]
     #[serde(default = "default_decoding")]
     decoding: DeserializerConfig,
+
+    /// The namespace to use for logs. This overrides the global setting.
+    #[serde(default)]
+    pub log_namespace: Option<bool>,
 }
 
 impl UdpConfig {
-    pub(super) const fn host_key(&self) -> &Option<String> {
+    pub(super) const fn host_key(&self) -> &Option<OptionalValuePath> {
         &self.host_key
+    }
+
+    pub const fn port_key(&self) -> &Option<OptionalValuePath> {
+        &self.port_key
     }
 
     pub(super) const fn framing(&self) -> &FramingConfig {
@@ -93,20 +109,26 @@ impl UdpConfig {
             address,
             max_length: crate::serde::default_max_length(),
             host_key: None,
-            port_key: Some(String::from("port")),
+            port_key: Some(OptionalValuePath::from(owned_value_path!("port"))),
             receive_buffer_bytes: None,
             framing: default_framing_message_based(),
             decoding: default_decoding(),
+            log_namespace: None,
         }
+    }
+
+    pub fn set_log_namespace(&mut self, val: Option<bool>) -> &mut Self {
+        self.log_namespace = val;
+        self
     }
 }
 
 pub(super) fn udp(
     config: UdpConfig,
-    host_key: String,
     decoder: Decoder,
     mut shutdown: ShutdownSignal,
     mut out: SourceSender,
+    log_namespace: LogNamespace,
 ) -> Source {
     Box::pin(async move {
         let listenfd = ListenFd::from_env();
@@ -191,7 +213,7 @@ pub(super) fn udp(
                                 let count = events.len();
                                 emit!(SocketEventsReceived {
                                     mode: SocketMode::Udp,
-                                    byte_size: events.size_of(),
+                                    byte_size: events.estimated_json_encoded_size_of(),
                                     count,
                                 });
 
@@ -199,13 +221,37 @@ pub(super) fn udp(
 
                                 for event in &mut events {
                                     if let Event::Log(ref mut log) = event {
-                                        log.try_insert(log_schema().source_type_key(), Bytes::from("socket"));
-                                        log.try_insert(log_schema().timestamp_key(), now);
-                                        log.try_insert(host_key.as_str(), address.ip().to_string());
+                                        log_namespace.insert_standard_vector_source_metadata(
+                                            log,
+                                            SocketConfig::NAME,
+                                            now,
+                                        );
 
-                                        if let Some(port_key) = &config.port_key {
-                                            log.try_insert(port_key.as_str(), address.port());
-                                        }
+                                        let legacy_host_key = config.host_key.as_ref().map_or_else(
+                                            || parse_value_path(log_schema().host_key()).ok(),
+                                            |k| k.path.clone(),
+                                        );
+
+                                        log_namespace.insert_source_metadata(
+                                            SocketConfig::NAME,
+                                            log,
+                                            legacy_host_key.as_ref().map(LegacyKey::InsertIfEmpty),
+                                            path!("host"),
+                                            address.ip().to_string()
+                                        );
+
+                                        let legacy_port_key = config
+                                            .port_key
+                                            .as_ref()
+                                            .map_or_else(|| parse_value_path("port").ok(), |k| k.path.clone());
+
+                                        log_namespace.insert_source_metadata(
+                                            SocketConfig::NAME,
+                                            log,
+                                            legacy_port_key.as_ref().map(LegacyKey::InsertIfEmpty),
+                                            path!("port"),
+                                            address.port()
+                                        );
                                     }
                                 }
 

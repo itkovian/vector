@@ -1,7 +1,6 @@
 #[cfg(feature = "vrl")]
 use std::convert::TryFrom;
 use std::{
-    collections::btree_map,
     convert::AsRef,
     fmt::{self, Display, Formatter},
     num::NonZeroU32,
@@ -14,7 +13,10 @@ use vector_config::configurable_component;
 use vrl_lib::prelude::VrlValueConvert;
 
 use crate::{
-    event::{BatchNotifier, EventFinalizer, EventFinalizers, EventMetadata, Finalizable},
+    event::{
+        estimated_json_encoded_size_of::EstimatedJsonEncodedSizeOf, BatchNotifier, EventFinalizer,
+        EventFinalizers, EventMetadata, Finalizable,
+    },
     ByteSizeOf,
 };
 
@@ -33,9 +35,22 @@ pub use self::tags::*;
 mod value;
 pub use self::value::*;
 
+#[macro_export]
+macro_rules! metric_tags {
+    () => { $crate::event::MetricTags::default() };
+
+    ($($key:expr => $value:expr,)+) => { $crate::metric_tags!($($key => $value),+) };
+
+    ($($key:expr => $value:expr),*) => {
+        [
+            $( ($key.into(), $crate::event::metric::TagValue::from($value)), )*
+        ].into_iter().collect::<$crate::event::MetricTags>()
+    };
+}
+
 /// A metric.
 #[configurable_component]
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Metric {
     #[serde(flatten)]
     pub(super) series: MetricSeries,
@@ -330,15 +345,16 @@ impl Metric {
     /// containing the previous value of the tag.
     ///
     /// *Note:* This will create the tags map if it is not present.
-    pub fn insert_tag(&mut self, name: String, value: String) -> Option<String> {
-        self.series.insert_tag(name, value)
+    pub fn replace_tag(&mut self, name: String, value: String) -> Option<String> {
+        self.series.replace_tag(name, value)
     }
 
-    /// Gets the given tag's corresponding entry in this metric.
-    ///
-    /// *Note:* This will create the tags map if it is not present, even if nothing is later inserted.
-    pub fn tag_entry(&mut self, key: String) -> btree_map::Entry<String, String> {
-        self.series.tag_entry(key)
+    pub fn set_multi_value_tag(
+        &mut self,
+        name: String,
+        values: impl IntoIterator<Item = TagValue>,
+    ) {
+        self.series.set_multi_value_tag(name, values);
     }
 
     /// Zeroes out the data in this metric.
@@ -366,6 +382,17 @@ impl Metric {
     #[must_use]
     pub fn subtract(&mut self, other: impl AsRef<MetricData>) -> bool {
         self.data.subtract(other.as_ref())
+    }
+
+    /// Reduces all the tag values to their single value, discarding any for which that value would
+    /// be null. If the result is empty, the tag set is dropped.
+    pub fn reduce_tags_to_single(&mut self) {
+        if let Some(tags) = &mut self.series.tags {
+            tags.reduce_to_single();
+            if tags.is_empty() {
+                self.series.tags = None;
+            }
+        }
     }
 }
 
@@ -405,14 +432,14 @@ impl Display for Metric {
     /// ```
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         if let Some(timestamp) = &self.data.time.timestamp {
-            write!(fmt, "{:?} ", timestamp)?;
+            write!(fmt, "{timestamp:?} ")?;
         }
         let kind = match self.data.kind {
             MetricKind::Absolute => '=',
             MetricKind::Incremental => '+',
         };
         self.series.fmt(fmt)?;
-        write!(fmt, " {} ", kind)?;
+        write!(fmt, " {kind} ")?;
         self.data.value.fmt(fmt)
     }
 }
@@ -430,6 +457,14 @@ impl ByteSizeOf for Metric {
         self.series.allocated_bytes()
             + self.data.allocated_bytes()
             + self.metadata.allocated_bytes()
+    }
+}
+
+impl EstimatedJsonEncodedSizeOf for Metric {
+    fn estimated_json_encoded_size_of(&self) -> usize {
+        // TODO: For now we're using the in-memory representation of the metric, but we'll convert
+        // this to actually calculate the JSON encoded size in the near future.
+        self.size_of()
     }
 }
 
@@ -555,7 +590,7 @@ where
 {
     let mut this_sep = "";
     for item in items {
-        write!(fmt, "{}", this_sep)?;
+        write!(fmt, "{this_sep}")?;
         writer(fmt, item)?;
         this_sep = sep;
     }
@@ -564,9 +599,9 @@ where
 
 fn write_word(fmt: &mut Formatter<'_>, word: &str) -> Result<(), fmt::Error> {
     if word.contains(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
-        write!(fmt, "{:?}", word)
+        write!(fmt, "{word:?}")
     } else {
-        write!(fmt, "{}", word)
+        write!(fmt, "{word}")
     }
 }
 
@@ -606,7 +641,7 @@ mod test {
     use std::collections::BTreeSet;
 
     use chrono::{offset::TimeZone, DateTime, Utc};
-    use pretty_assertions::assert_eq;
+    use similar_asserts::assert_eq;
 
     use super::*;
 
@@ -615,13 +650,11 @@ mod test {
     }
 
     fn tags() -> MetricTags {
-        vec![
-            ("normal_tag".to_owned(), "value".to_owned()),
-            ("true_tag".to_owned(), "true".to_owned()),
-            ("empty_tag".to_owned(), "".to_owned()),
-        ]
-        .into_iter()
-        .collect()
+        metric_tags!(
+            "normal_tag" => "value",
+            "true_tag" => "true",
+            "empty_tag" => "",
+        )
     }
 
     #[test]
