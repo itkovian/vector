@@ -803,7 +803,7 @@ dependencies = [
  "aws-smithy-async",
  "aws-smithy-checksums",
  "aws-smithy-client",
- "aws-smithy-eventstream",
+ "aws-smithy-eventstream 0.51.0",
  "aws-smithy-http 0.51.0",
  "aws-smithy-http-tower 0.51.0",
  "aws-smithy-types 0.51.0",
@@ -892,7 +892,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12cbe7b2be9e185c1fbce27fc9c41c66b195b32d89aa099f98768d9544221308"
 dependencies = [
  "aws-sigv4 0.51.0",
- "aws-smithy-eventstream",
+ "aws-smithy-eventstream 0.51.0",
  "aws-smithy-http 0.51.0",
  "aws-types",
  "http",
@@ -905,7 +905,7 @@ version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03ff4cff8c4a101962d593ba94e72cd83891aecd423f0c6e3146bff6fb92c9e3"
 dependencies = [
- "aws-smithy-eventstream",
+ "aws-smithy-eventstream 0.51.0",
  "aws-smithy-http 0.51.0",
  "bytes 1.4.0",
  "form_urlencoded",
@@ -1005,12 +1005,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-smithy-eventstream"
+version = "0.54.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac250d8c0e42af0097a6837ffc5a6fb9f8ba4107bb53124c047c91bc2a58878f"
+dependencies = [
+ "aws-smithy-types 0.54.4",
+ "bytes 1.4.0",
+ "crc32fast",
+]
+
+[[package]]
 name = "aws-smithy-http"
 version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf58ed4fefa61dbf038e5421a521cbc2c448ef69deff0ab1d915d8a10eda5664"
 dependencies = [
- "aws-smithy-eventstream",
+ "aws-smithy-eventstream 0.51.0",
  "aws-smithy-types 0.51.0",
  "bytes 1.4.0",
  "bytes-utils",
@@ -1051,6 +1062,7 @@ version = "0.54.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "873f316f1833add0d3aa54ed1b0cd252ddd88c792a0cf839886400099971e844"
 dependencies = [
+ "aws-smithy-eventstream 0.54.4",
  "aws-smithy-types 0.54.4",
  "bytes 1.4.0",
  "bytes-utils",
@@ -9361,7 +9373,7 @@ dependencies = [
  "aws-sigv4 0.53.0",
  "aws-smithy-async",
  "aws-smithy-client",
- "aws-smithy-http 0.51.0",
+ "aws-smithy-http 0.54.4",
  "aws-smithy-http-tower 0.54.4",
  "aws-smithy-types 0.51.0",
  "aws-types",
