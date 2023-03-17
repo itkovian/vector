@@ -39,17 +39,23 @@ base: components: sinks: azure_blob: configuration: {
 					serialized / compressed.
 					"""
 				required: false
-				type: uint: {}
+				type: uint: {
+					default: 10000000
+					unit:    "bytes"
+				}
 			}
 			max_events: {
-				description: "The maximum size of a batch, in events, before it is flushed."
+				description: "The maximum size of a batch before it is flushed."
 				required:    false
-				type: uint: {}
+				type: uint: unit: "events"
 			}
 			timeout_secs: {
-				description: "The maximum age of a batch, in seconds, before it is flushed."
+				description: "The maximum age of a batch before it is flushed."
 				required:    false
-				type: float: {}
+				type: float: {
+					default: 300.0
+					unit:    "seconds"
+				}
 			}
 		}
 	}
@@ -77,7 +83,11 @@ base: components: sinks: azure_blob: configuration: {
 			in `/` to act as a directory path. A trailing `/` is **not** automatically added.
 			"""
 		required: false
-		type: string: {}
+		type: string: {
+			default: "blob/%F/"
+			examples: ["date/%F/hour/%H/", "year=%Y/month=%m/day=%d/", "kubernetes/{{ metadata.cluster }}/{{ metadata.application_name }}/"]
+			syntax: "template"
+		}
 	}
 	blob_time_format: {
 		description: """
@@ -99,7 +109,7 @@ base: components: sinks: azure_blob: configuration: {
 			[chrono_strftime_specifiers]: https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers
 			"""
 		required: false
-		type: string: {}
+		type: string: syntax: "strftime"
 	}
 	compression: {
 		description: """
@@ -118,7 +128,7 @@ base: components: sinks: azure_blob: configuration: {
 					"""
 				none: "No compression."
 				zlib: """
-					[Zlib]][zlib] compression.
+					[Zlib][zlib] compression.
 
 					[zlib]: https://zlib.net/
 					"""
@@ -134,12 +144,12 @@ base: components: sinks: azure_blob: configuration: {
 			Either `storage_account`, or this field, must be specified.
 			"""
 		required: false
-		type: string: {}
+		type: string: examples: ["DefaultEndpointsProtocol=https;AccountName=mylogstorage;AccountKey=storageaccountkeybase64encoded;EndpointSuffix=core.windows.net"]
 	}
 	container_name: {
 		description: "The Azure Blob Storage Account container name."
 		required:    true
-		type: string: {}
+		type: string: examples: ["my-logs"]
 	}
 	encoding: {
 		description: "Configures how events are encoded into raw bytes."
@@ -257,6 +267,21 @@ base: components: sinks: azure_blob: configuration: {
 			}
 		}
 	}
+	endpoint: {
+		description: """
+			The Azure Blob Storage Endpoint URL.
+
+			This is used to override the default blob storage endpoint URL in cases where you are using
+			credentials read from the environment/managed identities or access tokens without using an
+			explicit connection_string (which already explicitly supports overriding the blob endpoint
+			URL).
+
+			This may only be used with `storage_account` and will be ignored when used with
+			`connection_string`.
+			"""
+		required: false
+		type: string: examples: ["https://test.blob.core.usgovcloudapi.net/", "https://test.blob.core.windows.net/"]
+	}
 	framing: {
 		description: "Framing configuration."
 		required:    false
@@ -368,14 +393,20 @@ base: components: sinks: azure_blob: configuration: {
 				}
 			}
 			rate_limit_duration_secs: {
-				description: "The time window, in seconds, used for the `rate_limit_num` option."
+				description: "The time window used for the `rate_limit_num` option."
 				required:    false
-				type: uint: default: 1
+				type: uint: {
+					default: 1
+					unit:    "seconds"
+				}
 			}
 			rate_limit_num: {
 				description: "The maximum number of requests allowed within the `rate_limit_duration_secs` time window."
 				required:    false
-				type: uint: default: 9223372036854775807
+				type: uint: {
+					default: 9223372036854775807
+					unit:    "requests"
+				}
 			}
 			retry_attempts: {
 				description: """
@@ -384,7 +415,10 @@ base: components: sinks: azure_blob: configuration: {
 					The default, for all intents and purposes, represents an infinite number of retries.
 					"""
 				required: false
-				type: uint: default: 9223372036854775807
+				type: uint: {
+					default: 9223372036854775807
+					unit:    "retries"
+				}
 			}
 			retry_initial_backoff_secs: {
 				description: """
@@ -393,22 +427,31 @@ base: components: sinks: azure_blob: configuration: {
 					After the first retry has failed, the fibonacci sequence will be used to select future backoffs.
 					"""
 				required: false
-				type: uint: default: 1
+				type: uint: {
+					default: 1
+					unit:    "seconds"
+				}
 			}
 			retry_max_duration_secs: {
-				description: "The maximum amount of time, in seconds, to wait between retries."
+				description: "The maximum amount of time to wait between retries."
 				required:    false
-				type: uint: default: 3600
+				type: uint: {
+					default: 3600
+					unit:    "seconds"
+				}
 			}
 			timeout_secs: {
 				description: """
-					The maximum time a request can take before being aborted.
+					The time a request can take before being aborted.
 
 					It is highly recommended that you do not lower this value below the service’s internal timeout, as this could
 					create orphaned requests, pile on retries, and result in duplicate data downstream.
 					"""
 				required: false
-				type: uint: default: 60
+				type: uint: {
+					default: 60
+					unit:    "seconds"
+				}
 			}
 		}
 	}
@@ -429,6 +472,6 @@ base: components: sinks: azure_blob: configuration: {
 			[az_cli_docs]: https://docs.microsoft.com/en-us/cli/azure/account?view=azure-cli-latest#az-account-get-access-token
 			"""
 		required: false
-		type: string: {}
+		type: string: examples: ["mylogstorage"]
 	}
 }

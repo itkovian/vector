@@ -39,28 +39,34 @@ base: components: sinks: kafka: configuration: {
 					serialized / compressed.
 					"""
 				required: false
-				type: uint: {}
+				type: uint: unit: "bytes"
 			}
 			max_events: {
-				description: "The maximum size of a batch, in events, before it is flushed."
+				description: "The maximum size of a batch before it is flushed."
 				required:    false
-				type: uint: {}
+				type: uint: unit: "events"
 			}
 			timeout_secs: {
-				description: "The maximum age of a batch, in seconds, before it is flushed."
+				description: "The maximum age of a batch before it is flushed."
 				required:    false
-				type: float: {}
+				type: float: {
+					default: 1.0
+					unit:    "seconds"
+				}
 			}
 		}
 	}
 	bootstrap_servers: {
 		description: """
-			A comma-separated list of the initial Kafka brokers to connect to.
+			A comma-separated list of Kafka bootstrap servers.
 
-			Each value must be in the form of `<host>` or `<host>:<port>`, and separated by a comma.
+			These are the servers in a Kafka cluster that a client should use to "bootstrap" its
+			connection to the cluster, allowing discovering all other hosts in the cluster.
+
+			Must be in the form of `host:port`, and comma-separated.
 			"""
 		required: true
-		type: string: {}
+		type: string: examples: ["10.14.22.123:9092,10.14.23.332:9092"]
 	}
 	compression: {
 		description: "Supported compression types for Kafka."
@@ -199,18 +205,20 @@ base: components: sinks: kafka: configuration: {
 			If omitted, no headers will be written.
 			"""
 		required: false
-		type: string: {}
+		type: string: examples: ["headers"]
 	}
 	key_field: {
 		description: """
 			The log field name or tags key to use for the topic key.
 
-			If the field does not exist in the log or in tags, a blank value will be used. If unspecified, the key is not sent.
+			If the field does not exist in the log or in tags, a blank value will be used. If
+			unspecified, the key is not sent.
 
-			Kafka uses a hash of the key to choose the partition or uses round-robin if the record has no key.
+			Kafka uses a hash of the key to choose the partition or uses round-robin if the record has
+			no key.
 			"""
 		required: false
-		type: string: {}
+		type: string: examples: ["user_id"]
 	}
 	librdkafka_options: {
 		description: """
@@ -221,15 +229,27 @@ base: components: sinks: kafka: configuration: {
 			[config_props_docs]: https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
 			"""
 		required: false
-		type: object: options: "*": {
-			required: true
-			type: string: {}
+		type: object: {
+			examples: [{
+				"client.id":                "${ENV_VAR}"
+				"fetch.error.backoff.ms":   "1000"
+				"socket.send.buffer.bytes": "100"
+			}]
+			options: "*": {
+				description: "A librdkafka configuration option."
+				required:    true
+				type: string: {}
+			}
 		}
 	}
 	message_timeout_ms: {
 		description: "Local message timeout, in milliseconds."
 		required:    false
-		type: uint: default: 300000
+		type: uint: {
+			default: 300000
+			examples: [150000, 450000]
+			unit: "milliseconds"
+		}
 	}
 	sasl: {
 		description: "Configuration for SASL authentication when interacting with Kafka."
@@ -253,24 +273,28 @@ base: components: sinks: kafka: configuration: {
 			mechanism: {
 				description: "The SASL mechanism to use."
 				required:    false
-				type: string: {}
+				type: string: examples: ["SCRAM-SHA-256", "SCRAM-SHA-512"]
 			}
 			password: {
 				description: "The SASL password."
 				required:    false
-				type: string: {}
+				type: string: examples: ["password"]
 			}
 			username: {
 				description: "The SASL username."
 				required:    false
-				type: string: {}
+				type: string: examples: ["username"]
 			}
 		}
 	}
 	socket_timeout_ms: {
 		description: "Default timeout, in milliseconds, for network requests."
 		required:    false
-		type: uint: default: 60000
+		type: uint: {
+			default: 60000
+			examples: [30000, 60000]
+			unit: "milliseconds"
+		}
 	}
 	tls: {
 		description: "Configures the TLS options for incoming/outgoing connections."
@@ -370,6 +394,9 @@ base: components: sinks: kafka: configuration: {
 	topic: {
 		description: "The Kafka topic name to write events to."
 		required:    true
-		type: string: syntax: "template"
+		type: string: {
+			examples: ["topic-1234", "logs-{{unit}}-%Y-%m-%d"]
+			syntax: "template"
+		}
 	}
 }

@@ -6,9 +6,7 @@ use vector_config::configurable_component;
 use vector_core::config::LogNamespace;
 
 use crate::{
-    config::{
-        log_schema, DataType, GenerateConfig, Input, Output, TransformConfig, TransformContext,
-    },
+    config::{DataType, GenerateConfig, Input, Output, TransformConfig, TransformContext},
     event::{
         metric::{Metric, MetricKind, MetricTags, MetricValue, StatisticKind, TagValue},
         Event, Value,
@@ -64,6 +62,7 @@ pub struct MetricConfig {
     pub namespace: Option<Template>,
 
     /// Tags to apply to the metric.
+    #[configurable(metadata(docs::additional_props_description = "A metric tag."))]
     pub tags: Option<IndexMap<String, TagConfig>>,
 
     #[configurable(derived)]
@@ -79,9 +78,10 @@ pub struct MetricConfig {
 #[serde(untagged)]
 pub enum TagConfig {
     /// A single tag value.
-    Plain(#[configurable(transparent)] Option<Template>),
+    Plain(Option<Template>),
+
     /// An array of values to give to the same tag name.
-    Multi(#[configurable(transparent)] Vec<Option<Template>>),
+    Multi(Vec<Option<Template>>),
 }
 
 /// Specification of the type of an individual metric, and any associated data.
@@ -91,7 +91,7 @@ pub enum TagConfig {
 #[configurable(metadata(docs::enum_tag_description = "The type of metric to create."))]
 pub enum MetricTypeConfig {
     /// A counter.
-    Counter(#[configurable(derived)] CounterConfig),
+    Counter(CounterConfig),
 
     /// A histogram.
     Histogram,
@@ -242,7 +242,7 @@ fn to_metric(config: &MetricConfig, event: &Event) -> Result<Metric, TransformEr
     let log = event.as_log();
 
     let timestamp = log
-        .get(log_schema().timestamp_key())
+        .get_timestamp()
         .and_then(Value::as_timestamp)
         .cloned()
         .or_else(|| Some(Utc::now()));
@@ -424,7 +424,9 @@ mod tests {
     }
 
     fn ts() -> DateTime<Utc> {
-        Utc.ymd(2018, 11, 14).and_hms_nano(8, 9, 10, 11)
+        Utc.ymd(2018, 11, 14)
+            .and_hms_nano_opt(8, 9, 10, 11)
+            .expect("invalid timestamp")
     }
 
     fn create_event(key: &str, value: impl Into<Value> + std::fmt::Debug) -> Event {

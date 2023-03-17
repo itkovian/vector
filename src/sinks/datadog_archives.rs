@@ -14,6 +14,7 @@ use std::{
 };
 
 use azure_storage_blobs::prelude::ContainerClient;
+use base64::prelude::{Engine as _, BASE64_STANDARD};
 use bytes::{BufMut, Bytes, BytesMut};
 use chrono::{SecondsFormat, Utc};
 use codecs::{encoding::Framer, JsonSerializerConfig, NewlineDelimitedEncoder};
@@ -214,9 +215,10 @@ pub struct S3Options {
     /// For more information, see [Using Amazon S3 storage classes][storage_classes].
     ///
     /// [storage_classes]: https://docs.aws.amazon.com/AmazonS3/latest/dev/storage-class-intro.html
-    pub storage_class: Option<S3StorageClass>,
+    pub storage_class: S3StorageClass,
 
     /// The tag-set for the object.
+    #[configurable(metadata(docs::additional_props_description = "A single tag."))]
     pub tags: Option<BTreeMap<String, String>>,
 }
 
@@ -247,6 +249,7 @@ pub struct GcsConfig {
     /// For more information, see [Custom metadata][custom_metadata].
     ///
     /// [custom_metadata]: https://cloud.google.com/storage/docs/metadata#custom-metadata
+    #[configurable(metadata(docs::additional_props_description = "A key/value pair."))]
     metadata: Option<HashMap<String, String>>,
 
     #[serde(flatten)]
@@ -310,6 +313,7 @@ impl DatadogArchivesSinkConfig {
                     Some(azure_config.connection_string.clone()),
                     None,
                     self.bucket.clone(),
+                    None,
                 )?;
                 let svc = self
                     .build_azure_sink(Arc::<ContainerClient>::clone(&client))
@@ -358,7 +362,7 @@ impl DatadogArchivesSinkConfig {
             .service(service);
 
         match s3_options.storage_class {
-            Some(class @ S3StorageClass::DeepArchive) | Some(class @ S3StorageClass::Glacier) => {
+            class @ S3StorageClass::DeepArchive | class @ S3StorageClass::Glacier => {
                 return Err(ConfigError::UnsupportedStorageClass {
                     storage_class: format!("{:?}", class),
                 });
@@ -514,7 +518,7 @@ impl DatadogArchivesEncoding {
         let id_seq_number = self.id_seq_number.fetch_add(1, Ordering::Relaxed);
         id.put_u32(id_seq_number);
 
-        base64::encode(id.freeze())
+        BASE64_STANDARD.encode(id.freeze())
     }
 }
 
@@ -852,7 +856,9 @@ impl RequestBuilder<(String, Vec<Event>)> for DatadogAzureRequestBuilder {
 //
 // TODO: When the sink is fully supported and we expose it for use/within the docs, remove this.
 impl NamedComponent for DatadogArchivesSinkConfig {
-    const NAME: &'static str = "datadog_archives";
+    fn get_component_name(&self) -> &'static str {
+        "datadog_archives"
+    }
 }
 
 #[async_trait::async_trait]
@@ -1053,7 +1059,9 @@ mod tests {
     /// - base64-encoded,
     /// - first 6 bytes - a "now" timestamp in millis
     fn validate_event_id(id: &str) {
-        let bytes = base64::decode(id).expect("_id is not base64-encoded");
+        let bytes = BASE64_STANDARD
+            .decode(id)
+            .expect("_id is not base64-encoded");
         assert_eq!(bytes.len(), 18);
         let mut timestamp: [u8; 8] = [0; 8];
         for (i, b) in bytes[..6].iter().enumerate() {
@@ -1135,7 +1143,7 @@ mod tests {
                 request: TowerRequestConfig::default(),
                 aws_s3: Some(S3Config {
                     options: S3Options {
-                        storage_class: Some(class),
+                        storage_class: class,
                         ..Default::default()
                     },
                     region: RegionOrEndpoint::with_region("us-east-1".to_owned()),
