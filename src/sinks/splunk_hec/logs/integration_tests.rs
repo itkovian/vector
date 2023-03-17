@@ -409,7 +409,7 @@ async fn splunk_auto_extracted_timestamp() {
     // The auto_extract_timestamp setting only works on version 8 and above of splunk.
     // If the splunk version is set to 7, we ignore this test.
     // This environment variable is set by the integration test docker-compose file.
-    if std::env::var("SPLUNK_VERSION")
+    if std::env::var("CONFIG_VERSION")
         .map(|version| !version.starts_with("7."))
         .unwrap_or(true)
     {
@@ -429,7 +429,11 @@ async fn splunk_auto_extracted_timestamp() {
 
         event.insert(
             "timestamp",
-            Value::from(Utc.ymd(2020, 3, 5).and_hms(0, 0, 0)),
+            Value::from(
+                Utc.ymd(2020, 3, 5)
+                    .and_hms_opt(0, 0, 0)
+                    .expect("invalid timestamp"),
+            ),
         );
 
         run_and_assert_sink_compliance(sink, stream::once(ready(event)), &HTTP_SINK_TAGS).await;
@@ -452,7 +456,7 @@ async fn splunk_non_auto_extracted_timestamp() {
     // The auto_extract_timestamp setting only works on version 8 and above of splunk.
     // If the splunk version is set to 7, we ignore this test.
     // This environment variable is set by the integration test docker-compose file.
-    if std::env::var("SPLUNK_VERSION")
+    if std::env::var("CONFIG_VERSION")
         .map(|version| !version.starts_with("7."))
         .unwrap_or(true)
     {
@@ -471,7 +475,11 @@ async fn splunk_non_auto_extracted_timestamp() {
         // With auto_extract_timestamp switched off the timestamp comes from the event timestamp.
         event.insert(
             "timestamp",
-            Value::from(Utc.ymd(2020, 3, 5).and_hms(0, 0, 0)),
+            Value::from(
+                Utc.ymd(2020, 3, 5)
+                    .and_hms_opt(0, 0, 0)
+                    .expect("invalid timestamp"),
+            ),
         );
 
         run_and_assert_sink_compliance(sink, stream::once(ready(event)), &HTTP_SINK_TAGS).await;

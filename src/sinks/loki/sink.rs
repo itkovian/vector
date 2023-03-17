@@ -27,7 +27,6 @@ use crate::sinks::{
 };
 use crate::{
     codecs::{Encoder, Transformer},
-    config::log_schema,
     http::{get_http_scheme_from_uri, HttpClient},
     internal_events::{
         LokiEventUnlabeled, LokiOutOfOrderEventDropped, LokiOutOfOrderEventRewritten,
@@ -210,15 +209,13 @@ impl EventEncoder {
         let mut labels = self.build_labels(&event);
         self.remove_label_fields(&mut event);
 
-        let schema = log_schema();
-        let timestamp_key = schema.timestamp_key();
-        let timestamp = match event.as_log().get(timestamp_key) {
+        let timestamp = match event.as_log().get_timestamp() {
             Some(Value::Timestamp(ts)) => ts.timestamp_nanos(),
             _ => chrono::Utc::now().timestamp_nanos(),
         };
 
         if self.remove_timestamp {
-            event.as_mut_log().remove(timestamp_key);
+            event.as_mut_log().remove_timestamp();
         }
 
         self.transformer.transform(&mut event);
@@ -334,7 +331,7 @@ impl LokiSink {
     pub fn new(config: LokiConfig, client: HttpClient) -> crate::Result<Self> {
         let compression = config.compression;
 
-        // if Vector is configured to allow events with out of order timestamps, then then we can
+        // if Vector is configured to allow events with out of order timestamps, then we can
         // safely enable concurrency settings.
         //
         // For rewritten timestamps, we use a static concurrency of 1 to avoid out-of-order

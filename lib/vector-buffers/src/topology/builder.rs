@@ -14,7 +14,7 @@ use crate::{
 
 /// Value that can be used as a stage in a buffer topology.
 #[async_trait]
-pub trait IntoBuffer<T: Bufferable> {
+pub trait IntoBuffer<T: Bufferable>: Send {
     /// Gets whether or not this buffer stage provides its own instrumentation, or if it should be
     /// instrumented from the outside.
     ///
@@ -22,8 +22,8 @@ pub trait IntoBuffer<T: Bufferable> {
     /// in the middle of the channel without introducing an unnecessary hop, [`BufferSender`] and
     /// [`BufferReceiver`] can be configured to instrument all events flowing through directly.
     ///
-    /// When instrumentation is provided in this way, [`ByteSizeOf`] is used to calculate the size
-    /// of the event going both into and out of the buffer.
+    /// When instrumentation is provided in this way, [`vector_common::byte_size_of::ByteSizeOf`]
+    ///  is used to calculate the size of the event going both into and out of the buffer.
     fn provides_instrumentation(&self) -> bool {
         false
     }

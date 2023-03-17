@@ -34,17 +34,21 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 			access_key_id: {
 				description: "The AWS access key ID."
 				required:    true
-				type: string: {}
+				type: string: examples: ["AKIAIOSFODNN7EXAMPLE"]
 			}
 			assume_role: {
-				description: "The ARN of the role to assume."
-				required:    true
-				type: string: {}
+				description: """
+					The ARN of an [IAM role][iam_role] to assume.
+
+					[iam_role]: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
+					"""
+				required: true
+				type: string: examples: ["arn:aws:iam::123456789098:role/my_role"]
 			}
 			credentials_file: {
 				description: "Path to the credentials file."
 				required:    true
-				type: string: {}
+				type: string: examples: ["/my/aws/credentials"]
 			}
 			imds: {
 				description: "Configuration for authenticating with AWS through IMDS."
@@ -74,29 +78,42 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 				}
 			}
 			load_timeout_secs: {
-				description: "Timeout for successfully loading any credentials, in seconds."
-				required:    false
-				type: uint: {}
+				description: """
+					Timeout for successfully loading any credentials, in seconds.
+
+					Relevant when the default credentials chain is used or `assume_role`.
+					"""
+				required: false
+				type: uint: {
+					examples: [30]
+					unit: "seconds"
+				}
 			}
 			profile: {
-				description: "The credentials profile to use."
-				required:    false
-				type: string: {}
+				description: """
+					The credentials profile to use.
+
+					Used to select AWS credentials from a provided credentials file.
+					"""
+				required: false
+				type: string: examples: ["develop"]
 			}
 			region: {
 				description: """
-					The AWS region to send STS requests to.
+					The [AWS region][aws_region] to send STS requests to.
 
 					If not set, this will default to the configured region
 					for the service itself.
+
+					[aws_region]: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
 					"""
 				required: false
-				type: string: {}
+				type: string: examples: ["us-west-2"]
 			}
 			secret_access_key: {
 				description: "The AWS secret access key."
 				required:    true
-				type: string: {}
+				type: string: examples: ["wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"]
 			}
 		}
 	}
@@ -112,17 +129,26 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 					serialized / compressed.
 					"""
 				required: false
-				type: uint: {}
+				type: uint: {
+					default: 1048576
+					unit:    "bytes"
+				}
 			}
 			max_events: {
-				description: "The maximum size of a batch, in events, before it is flushed."
+				description: "The maximum size of a batch before it is flushed."
 				required:    false
-				type: uint: {}
+				type: uint: {
+					default: 10000
+					unit:    "events"
+				}
 			}
 			timeout_secs: {
-				description: "The maximum age of a batch, in seconds, before it is flushed."
+				description: "The maximum age of a batch before it is flushed."
 				required:    false
-				type: float: {}
+				type: float: {
+					default: 1.0
+					unit:    "seconds"
+				}
 			}
 		}
 	}
@@ -143,7 +169,7 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 					"""
 				none: "No compression."
 				zlib: """
-					[Zlib]][zlib] compression.
+					[Zlib][zlib] compression.
 
 					[zlib]: https://zlib.net/
 					"""
@@ -160,7 +186,7 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 			[log_group]: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html
 			"""
 		required: false
-		type: bool: {}
+		type: bool: default: true
 	}
 	create_missing_stream: {
 		description: """
@@ -169,7 +195,7 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 			[log_stream]: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html
 			"""
 		required: false
-		type: bool: {}
+		type: bool: default: true
 	}
 	encoding: {
 		description: "Configures how events are encoded into raw bytes."
@@ -288,9 +314,9 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 		}
 	}
 	endpoint: {
-		description: "The API endpoint of the service."
+		description: "Custom endpoint for use with AWS-compatible services."
 		required:    false
-		type: string: {}
+		type: string: examples: ["http://127.0.0.0:5000/path/to/service"]
 	}
 	group_name: {
 		description: """
@@ -299,12 +325,19 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 			[group_name]: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html
 			"""
 		required: true
-		type: string: syntax: "template"
+		type: string: {
+			examples: ["group-name", "{{ file }}"]
+			syntax: "template"
+		}
 	}
 	region: {
-		description: "The AWS region to use."
-		required:    false
-		type: string: {}
+		description: """
+			The [AWS region][aws_region] of the target service.
+
+			[aws_region]: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
+			"""
+		required: false
+		type: string: examples: ["us-east-1"]
 	}
 	request: {
 		description: "Outbound HTTP request settings."
@@ -385,20 +418,33 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 			headers: {
 				description: "Additional HTTP headers to add to every HTTP request."
 				required:    false
-				type: object: options: "*": {
-					required: true
-					type: string: {}
+				type: object: {
+					examples: [{
+						Accept:               "text/plain"
+						"X-My-Custom-Header": "A-Value"
+					}]
+					options: "*": {
+						description: "An HTTP request header and it's value."
+						required:    true
+						type: string: {}
+					}
 				}
 			}
 			rate_limit_duration_secs: {
-				description: "The time window, in seconds, used for the `rate_limit_num` option."
+				description: "The time window used for the `rate_limit_num` option."
 				required:    false
-				type: uint: default: 1
+				type: uint: {
+					default: 1
+					unit:    "seconds"
+				}
 			}
 			rate_limit_num: {
 				description: "The maximum number of requests allowed within the `rate_limit_duration_secs` time window."
 				required:    false
-				type: uint: default: 9223372036854775807
+				type: uint: {
+					default: 9223372036854775807
+					unit:    "requests"
+				}
 			}
 			retry_attempts: {
 				description: """
@@ -407,7 +453,10 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 					The default, for all intents and purposes, represents an infinite number of retries.
 					"""
 				required: false
-				type: uint: default: 9223372036854775807
+				type: uint: {
+					default: 9223372036854775807
+					unit:    "retries"
+				}
 			}
 			retry_initial_backoff_secs: {
 				description: """
@@ -416,22 +465,31 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 					After the first retry has failed, the fibonacci sequence will be used to select future backoffs.
 					"""
 				required: false
-				type: uint: default: 1
+				type: uint: {
+					default: 1
+					unit:    "seconds"
+				}
 			}
 			retry_max_duration_secs: {
-				description: "The maximum amount of time, in seconds, to wait between retries."
+				description: "The maximum amount of time to wait between retries."
 				required:    false
-				type: uint: default: 3600
+				type: uint: {
+					default: 3600
+					unit:    "seconds"
+				}
 			}
 			timeout_secs: {
 				description: """
-					The maximum time a request can take before being aborted.
+					The time a request can take before being aborted.
 
 					It is highly recommended that you do not lower this value below the service’s internal timeout, as this could
 					create orphaned requests, pile on retries, and result in duplicate data downstream.
 					"""
 				required: false
-				type: uint: default: 60
+				type: uint: {
+					default: 60
+					unit:    "seconds"
+				}
 			}
 		}
 	}
@@ -439,16 +497,17 @@ base: components: sinks: aws_cloudwatch_logs: configuration: {
 		description: """
 			The [stream name][stream_name] of the target CloudWatch Logs stream.
 
-			There can only be one writer to a log stream at a time. If you have multiple
-			instances writing to the same log group, you must include an identifier in the
-			stream name that is guaranteed to be unique per instance.
-
-			For example, you might choose `host`.
+			There can only be one writer to a log stream at a time. If multiple instances are writing to
+			the same log group, the stream name must include an identifier that is guaranteed to be
+			unique per instance.
 
 			[stream_name]: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html
 			"""
 		required: true
-		type: string: syntax: "template"
+		type: string: {
+			examples: ["{{ host }}", "%Y-%m-%d", "stream-name"]
+			syntax: "template"
+		}
 	}
 	tls: {
 		description: "TLS configuration."
