@@ -118,7 +118,7 @@ members = [
 ]
 
 [workspace.dependencies]
-vrl = { version = "0.7.0", features = ["cli"] }
+vrl = { git = "https://github.com/itkovian/vrl", rev = "326ec36ab99a74a49b8d02fd1", features = ["cli"] }
 
 pin-project = { version = "1.1.3", default-features = false }
 
@@ -374,7 +374,7 @@ tokio = { version = "1.33.0", features = ["test-util"] }
 tokio-test = "0.4.3"
 tower-test = "0.4.0"
 vector-core = { path = "lib/vector-core", default-features = false, features = ["vrl", "test"] }
-vrl = { version = "0.7.0", features = ["cli", "test", "test_framework", "arbitrary"] }
+vrl = { git = "https://github.com/itkovian/vrl", rev = "326ec36ab99a74a49b8d02fd1", features = ["cli", "test", "test_framework", "arbitrary"] }
 
 wiremock = "0.5.19"
 zstd = { version = "0.13.0", default-features = false }
