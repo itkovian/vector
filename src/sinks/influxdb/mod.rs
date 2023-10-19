@@ -244,11 +244,13 @@ pub(in crate::sinks) fn influx_line_protocol(
     }
 
     encode_string(measurement, line_protocol);
-    line_protocol.put_u8(b',');
 
-    // Tags
+    // Tags are optional
     let unwrapped_tags = tags.unwrap_or_default();
-    encode_tags(unwrapped_tags, line_protocol);
+    if !unwrapped_tags.is_empty() {
+        line_protocol.put_u8(b',');
+        encode_tags(unwrapped_tags, line_protocol);
+    }
     line_protocol.put_u8(b' ');
 
     // Fields
@@ -340,7 +342,7 @@ fn encode_string(key: &str, output: &mut BytesMut) {
 
 pub(in crate::sinks) fn encode_timestamp(timestamp: Option<DateTime<Utc>>) -> i64 {
     if let Some(ts) = timestamp {
-        ts.timestamp_nanos()
+        ts.timestamp_nanos_opt().unwrap()
     } else {
         encode_timestamp(Some(Utc::now()))
     }
@@ -388,7 +390,7 @@ pub mod test_util {
     pub(crate) const TOKEN: &str = "my-token";
 
     pub(crate) fn next_database() -> String {
-        format!("testdb{}", Utc::now().timestamp_nanos())
+        format!("testdb{}", Utc::now().timestamp_nanos_opt().unwrap())
     }
 
     pub(crate) fn ts() -> DateTime<Utc> {
@@ -445,12 +447,12 @@ pub mod test_util {
     // 1542182950000000011
     //
     pub(crate) fn split_line_protocol(line_protocol: &str) -> (&str, &str, String, &str) {
-        let mut split = line_protocol.splitn(2, ',').collect::<Vec<&str>>();
-        let measurement = split[0];
+        let (name, fields) = line_protocol.split_once(' ').unwrap_or_default();
+        // tags and timestamp may not be present
+        let (measurement, tags) = name.split_once(',').unwrap_or((name, ""));
+        let (fields, ts) = fields.split_once(' ').unwrap_or((fields, ""));
 
-        split = split[1].splitn(3, ' ').collect::<Vec<&str>>();
-
-        (measurement, split[0], split[1].to_string(), split[2])
+        (measurement, tags, fields.to_string(), ts)
     }
 
     fn client() -> reqwest::Client {
@@ -611,7 +613,7 @@ mod tests {
         database = "my-database"
     "#;
         let config: InfluxDbTestConfig = toml::from_str(config).unwrap();
-        let _ = influxdb_settings(config.influxdb1_settings, config.influxdb2_settings).unwrap();
+        _ = influxdb_settings(config.influxdb1_settings, config.influxdb2_settings).unwrap();
     }
 
     #[test]
@@ -622,7 +624,7 @@ mod tests {
         token = "my-token"
     "#;
         let config: InfluxDbTestConfig = toml::from_str(config).unwrap();
-        let _ = influxdb_settings(config.influxdb1_settings, config.influxdb2_settings).unwrap();
+        _ = influxdb_settings(config.influxdb1_settings, config.influxdb2_settings).unwrap();
     }
 
     #[test]
@@ -832,7 +834,9 @@ mod tests {
 
     #[test]
     fn test_encode_timestamp() {
-        let start = Utc::now().timestamp_nanos();
+        let start = Utc::now()
+            .timestamp_nanos_opt()
+            .expect("Timestamp out of range");
         assert_eq!(encode_timestamp(Some(ts())), 1542182950000000011);
         assert!(encode_timestamp(None) >= start)
     }

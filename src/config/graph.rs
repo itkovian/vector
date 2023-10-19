@@ -2,8 +2,8 @@ use indexmap::{set::IndexSet, IndexMap};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::{
-    schema, ComponentKey, DataType, OutputId, SinkConfig, SinkOuter, SourceOuter, SourceOutput,
-    TransformOuter, TransformOutput,
+    schema, ComponentKey, DataType, OutputId, SinkOuter, SourceOuter, SourceOutput, TransformOuter,
+    TransformOutput,
 };
 
 #[derive(Debug, Clone)]
@@ -77,6 +77,7 @@ impl Graph {
                 Node::Transform {
                     in_ty: transform.inner.input().data_type(),
                     outputs: transform.inner.outputs(
+                        enrichment::TableRegistry::default(),
                         &[(id.into(), schema::Definition::any())],
                         schema.log_namespace(),
                     ),
@@ -399,7 +400,7 @@ mod test {
                     in_ty,
                     outputs: vec![TransformOutput::new(
                         out_ty,
-                        vec![Definition::default_legacy_namespace()],
+                        [("test".into(), Definition::default_legacy_namespace())].into(),
                     )],
                 },
             );
@@ -415,8 +416,11 @@ mod test {
             let id = id.into();
             match self.nodes.get_mut(&id) {
                 Some(Node::Transform { outputs, .. }) => outputs.push(
-                    TransformOutput::new(ty, vec![Definition::default_legacy_namespace()])
-                        .with_port(name),
+                    TransformOutput::new(
+                        ty,
+                        [("test".into(), Definition::default_legacy_namespace())].into(),
+                    )
+                    .with_port(name),
                 ),
                 _ => panic!("invalid transform"),
             }
@@ -651,11 +655,11 @@ mod test {
                 outputs: vec![
                     TransformOutput::new(
                         DataType::all(),
-                        vec![Definition::default_legacy_namespace()],
+                        [("test".into(), Definition::default_legacy_namespace())].into(),
                     ),
                     TransformOutput::new(
                         DataType::all(),
-                        vec![Definition::default_legacy_namespace()],
+                        [("test".into(), Definition::default_legacy_namespace())].into(),
                     )
                     .with_port("bar"),
                 ],
@@ -676,11 +680,11 @@ mod test {
                 outputs: vec![
                     TransformOutput::new(
                         DataType::all(),
-                        vec![Definition::default_legacy_namespace()],
+                        [("test".into(), Definition::default_legacy_namespace())].into(),
                     ),
                     TransformOutput::new(
                         DataType::all(),
-                        vec![Definition::default_legacy_namespace()],
+                        [("test".into(), Definition::default_legacy_namespace())].into(),
                     )
                     .with_port("errors"),
                 ],

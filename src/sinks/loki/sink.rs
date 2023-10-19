@@ -1,44 +1,26 @@
 use std::{collections::HashMap, num::NonZeroUsize};
 
 use bytes::{Bytes, BytesMut};
-use futures::{stream::BoxStream, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use snafu::Snafu;
 use tokio_util::codec::Encoder as _;
-use vector_common::request_metadata::RequestMetadata;
-use vector_core::{
-    event::{Event, EventFinalizers, Finalizable, Value},
-    partition::Partitioner,
-    sink::StreamSink,
-    stream::BatcherSettings,
-    ByteSizeOf,
-};
+use vrl::path::parse_target_path;
 
 use super::{
     config::{LokiConfig, OutOfOrderAction},
     event::{LokiBatchEncoder, LokiEvent, LokiRecord, PartitionKey},
     service::{LokiRequest, LokiRetryLogic, LokiService},
 };
+use crate::sinks::loki::config::{CompressionConfigAdapter, ExtendedCompression};
 use crate::sinks::loki::event::LokiBatchEncoding;
-use crate::sinks::{
-    loki::config::{CompressionConfigAdapter, ExtendedCompression},
-    util::metadata::RequestMetadataBuilder,
-};
 use crate::{
-    codecs::{Encoder, Transformer},
     http::{get_http_scheme_from_uri, HttpClient},
     internal_events::{
-        LokiEventUnlabeled, LokiOutOfOrderEventDropped, LokiOutOfOrderEventRewritten,
-        SinkRequestBuildError, TemplateRenderingError,
+        LokiEventUnlabeledError, LokiOutOfOrderEventDroppedError, LokiOutOfOrderEventRewritten,
+        SinkRequestBuildError,
     },
-    sinks::util::{
-        builder::SinkBuilderExt,
-        request_builder::EncodeResult,
-        service::{ServiceBuilderExt, Svc},
-        Compression, RequestBuilder,
-    },
-    template::Template,
+    sinks::prelude::*,
 };
 
 #[derive(Clone)]
@@ -163,35 +145,94 @@ pub(super) struct EventEncoder {
 
 impl EventEncoder {
     fn build_labels(&self, event: &Event) -> Vec<(String, String)> {
-        let mut static_vec: HashMap<String, String> = HashMap::new();
-        let mut dynamic_vec: HashMap<String, String> = HashMap::new();
+        let mut static_labels: HashMap<String, String> = HashMap::new();
+        let mut dynamic_labels: HashMap<String, String> = HashMap::new();
 
         for (key_template, value_template) in self.labels.iter() {
-            if let (Ok(key), Ok(value)) = (
-                key_template.render_string(event),
-                value_template.render_string(event),
-            ) {
-                if let Some(opening_prefix) = key.strip_suffix('*') {
-                    let output: Result<serde_json::map::Map<String, serde_json::Value>, _> =
-                        serde_json::from_str(value.as_str());
+            let key = key_template.render_string(event);
+            let value = value_template.render_string(event);
 
-                    if let Ok(output) = output {
-                        // key_* -> key_one, key_two, key_three
-                        // * -> one, two, three
-                        for (k, v) in output {
-                            dynamic_vec.insert(
-                                slugify_text(format!("{}{}", opening_prefix, k)),
-                                Value::from(v).to_string_lossy().into_owned(),
-                            );
-                        }
-                    }
-                } else {
-                    static_vec.insert(key, value);
+            if key.is_err() || value.is_err() {
+                if key.is_err() {
+                    emit!(TemplateRenderingError {
+                        field: Some(
+                            format!(
+                                "label_key \"{}\" with label_value \"{}\"",
+                                key_template, value_template
+                            )
+                            .as_str()
+                        ),
+                        drop_event: false,
+                        error: key.err().unwrap(),
+                    });
                 }
+                if value.is_err() {
+                    emit!(TemplateRenderingError {
+                        field: Some(
+                            format!(
+                                "label_value \"{}\" with label_key \"{}\"",
+                                value_template, key_template
+                            )
+                            .as_str()
+                        ),
+                        drop_event: false,
+                        error: value.err().unwrap(),
+                    });
+                }
+                continue;
+            }
+
+            let key_s = key.unwrap();
+            let value_s = value.unwrap();
+
+            if let Some(opening_prefix) = key_s.strip_suffix('*') {
+                let output: Result<
+                    serde_json::map::Map<String, serde_json::Value>,
+                    serde_json::Error,
+                > = serde_json::from_str(value_s.clone().as_str());
+
+                if output.is_err() {
+                    warn!(
+                        "Failed to expand dynamic label. value: {}, err: {}",
+                        value_s,
+                        output.err().unwrap()
+                    );
+                    continue;
+                }
+
+                // key_* -> key_one, key_two, key_three
+                // * -> one, two, three
+                for (k, v) in output.unwrap() {
+                    let key = slugify_text(format!("{}{}", opening_prefix, k));
+                    let val = Value::from(v).to_string_lossy().into_owned();
+                    if val == "<null>" {
+                        warn!("Encountered \"null\" value for dynamic label. key: {}", key);
+                        continue;
+                    }
+                    if let Some(prev) = dynamic_labels.insert(key.clone(), val.clone()) {
+                        warn!(
+                            "Encountered duplicated dynamic label. \
+                                key: {}, value: {}, discarded value: {}",
+                            key, val, prev
+                        );
+                    };
+                }
+            } else {
+                static_labels.insert(key_s, value_s);
             }
         }
-        dynamic_vec.extend(static_vec);
-        Vec::from_iter(dynamic_vec)
+
+        for (k, v) in static_labels {
+            if let Some(discarded_v) = dynamic_labels.insert(k.clone(), v.clone()) {
+                warn!(
+                    "Static label overrides dynamic label. \
+                key: {}, value: {}, discarded value: {}",
+                    k, v, discarded_v
+                );
+            };
+        }
+
+        Vec::from_iter(dynamic_labels)
     }
 
     fn remove_label_fields(&self, event: &mut Event) {
@@ -199,7 +240,9 @@ impl EventEncoder {
             for template in self.labels.values() {
                 if let Some(fields) = template.get_fields() {
                     for field in fields {
-                        event.as_mut_log().remove(field.as_str());
+                        if let Ok(path) = parse_target_path(field.as_str()) {
+                            event.as_mut_log().remove(&path);
+                        }
                     }
                 }
             }
@@ -209,17 +252,22 @@ impl EventEncoder {
     pub(super) fn encode_event(&mut self, mut event: Event) -> Option<LokiRecord> {
         let tenant_id = self.key_partitioner.partition(&event);
         let finalizers = event.take_finalizers();
+        let json_byte_size = event.estimated_json_encoded_size_of();
         let mut labels = self.build_labels(&event);
         self.remove_label_fields(&mut event);
 
         let timestamp = match event.as_log().get_timestamp() {
-            Some(Value::Timestamp(ts)) => ts.timestamp_nanos(),
-            _ => chrono::Utc::now().timestamp_nanos(),
+            Some(Value::Timestamp(ts)) => ts.timestamp_nanos_opt().expect("Timestamp out of range"),
+            _ => chrono::Utc::now()
+                .timestamp_nanos_opt()
+                .expect("Timestamp out of range"),
         };
 
         if self.remove_timestamp {
             event.as_mut_log().remove_timestamp();
         }
+
+        let event_count_tags = event.get_tags();
 
         self.transformer.transform(&mut event);
         let mut bytes = BytesMut::new();
@@ -229,7 +277,7 @@ impl EventEncoder {
         // `{agent="vector"}` label. This can happen if the only
         // label is a templatable one but the event doesn't match.
         if labels.is_empty() {
-            emit!(LokiEventUnlabeled);
+            emit!(LokiEventUnlabeledError);
             labels = vec![("agent".to_string(), "vector".to_string())]
         }
 
@@ -243,6 +291,8 @@ impl EventEncoder {
             },
             partition,
             finalizers,
+            json_byte_size,
+            event_count_tags,
         })
     }
 }
@@ -398,17 +448,18 @@ impl LokiSink {
         // out_of_order_action's that require a complete ordering are limited to building 1 request
         // at a time
         let request_builder_concurrency = match self.out_of_order_action {
-            OutOfOrderAction::Accept => NonZeroUsize::new(50).expect("static"),
+            OutOfOrderAction::Accept => default_request_builder_concurrency_limit(),
             OutOfOrderAction::Drop | OutOfOrderAction::RewriteTimestamp => {
                 NonZeroUsize::new(1).expect("static")
             }
         };
+        let batch_settings = self.batch_settings;
 
         input
             .map(|event| encoder.encode_event(event))
             .filter_map(|event| async { event })
             .map(|record| filter.filter_record(record))
-            .batched_partitioned(RecordPartitioner::default(), self.batch_settings)
+            .batched_partitioned(RecordPartitioner, || batch_settings.as_byte_size_config())
             .filter_map(|(partition, batch)| async {
                 if let Some(partition) = partition {
                     let mut count: usize = 0;
@@ -427,11 +478,11 @@ impl LokiSink {
                     }
                     Some((partition, result))
                 } else {
-                    emit!(LokiOutOfOrderEventDropped { count: batch.len() });
+                    emit!(LokiOutOfOrderEventDroppedError { count: batch.len() });
                     None
                 }
             })
-            .request_builder(Some(request_builder_concurrency), self.request_builder)
+            .request_builder(request_builder_concurrency, self.request_builder)
             .filter_map(|request| async move {
                 match request {
                     Err(error) => {
@@ -589,7 +640,7 @@ mod tests {
             remove_timestamp: false,
         };
 
-        let message = r###"
+        let message = r#"
         {
         	"kubernetes": {
         		"pod_labels": {
@@ -603,7 +654,7 @@ mod tests {
         		"cluster_version": "1.2.3"
         	}
         }
-        "###;
+        "#;
         let msg: BTreeMap<String, Value> = serde_json::from_str(message)?;
         let event = Event::Log(LogEvent::from(msg));
         let record = encoder.encode_event(event).unwrap();
@@ -615,6 +666,75 @@ mod tests {
         assert_eq!(labels["cluster_name"], "static_cluster_name".to_string());
         assert_eq!(labels["cluster_environment"], "development".to_string());
         assert_eq!(labels["cluster_version"], "1.2.3".to_string());
+        Ok(())
+    }
+
+    #[test]
+    fn encoder_with_colliding_dynamic_labels() -> Result<(), serde_json::Error> {
+        let mut labels = HashMap::default();
+        labels.insert(
+            Template::try_from("l1_*").unwrap(),
+            Template::try_from("{{ map1 }}").unwrap(),
+        );
+        labels.insert(
+            Template::try_from("*").unwrap(),
+            Template::try_from("{{ map2 }}").unwrap(),
+        );
+
+        let mut encoder = EventEncoder {
+            key_partitioner: KeyPartitioner::new(None),
+            transformer: Default::default(),
+            encoder: Encoder::<()>::new(JsonSerializerConfig::default().build().into()),
+            labels,
+            remove_label_fields: false,
+            remove_timestamp: false,
+        };
+
+        let message = r#"
+        {
+        	"map1": {
+        		"key1": "val1"
+        	},
+        	"map2": {
+        		"l1_key1": "val2"
+        	}
+        }
+        "#;
+        let msg: BTreeMap<String, Value> = serde_json::from_str(message)?;
+        let event = Event::Log(LogEvent::from(msg));
+        let record = encoder.encode_event(event).unwrap();
+
+        assert_eq!(record.labels.len(), 1);
+        let labels: HashMap<String, String> = record.labels.into_iter().collect();
+        // EventEncoder.labels is type HashMap (unordered) -> both values can be valid
+        assert!(["val1".to_string(), "val2".to_string()].contains(&labels["l1_key1"]));
+        Ok(())
+    }
+
+    #[test]
+    fn encoder_with_failing_dynamic_label_expansion() -> Result<(), serde_json::Error> {
+        let mut labels = HashMap::default();
+        labels.insert(
+            Template::try_from("missing_*").unwrap(),
+            Template::try_from("{{ map }}").unwrap(),
+        );
+
+        let mut encoder = EventEncoder {
+            key_partitioner: KeyPartitioner::new(None),
+            transformer: Default::default(),
+            encoder: Encoder::<()>::new(JsonSerializerConfig::default().build().into()),
+            labels,
+            remove_label_fields: false,
+            remove_timestamp: false,
+        };
+
+        let msg: BTreeMap<String, Value> = serde_json::from_str("{}")?;
+        let event = Event::Log(LogEvent::from(msg));
+        let record = encoder.encode_event(event).unwrap();
+
+        assert_eq!(record.labels.len(), 1);
+        let labels: HashMap<String, String> = record.labels.into_iter().collect();
+        assert_eq!(labels["agent"], "vector".to_string());
         Ok(())
     }
 

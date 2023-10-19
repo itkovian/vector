@@ -41,6 +41,7 @@ use zstd::Decoder as ZstdDecoder;
 
 use crate::{
     config::{Config, ConfigDiff, GenerateConfig},
+    signal::ShutdownError,
     topology::{self, RunningTopology},
     trace,
 };
@@ -113,11 +114,11 @@ pub fn next_addr_for_ip(ip: IpAddr) -> SocketAddr {
 }
 
 pub fn next_addr() -> SocketAddr {
-    next_addr_for_ip(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))
+    next_addr_for_ip(IpAddr::V4(Ipv4Addr::LOCALHOST))
 }
 
 pub fn next_addr_v6() -> SocketAddr {
-    next_addr_for_ip(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)))
+    next_addr_for_ip(IpAddr::V6(Ipv6Addr::LOCALHOST))
 }
 
 pub fn trace_init() {
@@ -593,7 +594,7 @@ impl<T> Future for CountReceiver<T> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
         if let Some(trigger) = this.trigger.take() {
-            let _ = trigger.send(());
+            _ = trigger.send(());
         }
 
         let result = ready!(this.handle.poll_unpin(cx));
@@ -683,8 +684,8 @@ pub async fn start_topology(
 ) -> (
     RunningTopology,
     (
-        tokio::sync::mpsc::UnboundedSender<()>,
-        tokio::sync::mpsc::UnboundedReceiver<()>,
+        tokio::sync::mpsc::UnboundedSender<ShutdownError>,
+        tokio::sync::mpsc::UnboundedReceiver<ShutdownError>,
     ),
 ) {
     config.healthchecks.set_require_healthy(require_healthy);

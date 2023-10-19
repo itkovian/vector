@@ -83,6 +83,11 @@ base: components: sinks: appsignal: configuration: {
 
 					[zlib]: https://zlib.net/
 					"""
+				zstd: """
+					[Zstandard][zstd] compression.
+
+					[zstd]: https://facebook.github.io/zstd/
+					"""
 			}
 		}
 	}
@@ -165,6 +170,17 @@ base: components: sinks: appsignal: configuration: {
 						required: false
 						type: float: default: 0.4
 					}
+					initial_concurrency: {
+						description: """
+																The initial concurrency limit to use. If not specified, the initial limit will be 1 (no concurrency).
+
+																It is recommended to set this value to your service's average limit if you're seeing that it takes a
+																long time to ramp up adaptive concurrency after a restart. You can find this value by looking at the
+																`adaptive_concurrency_limit` metric.
+																"""
+						required: false
+						type: uint: default: 1
+					}
 					rtt_deviation_scale: {
 						description: """
 																Scale of RTT deviations which are not considered anomalous.
@@ -182,11 +198,16 @@ base: components: sinks: appsignal: configuration: {
 				}
 			}
 			concurrency: {
-				description: "Configuration for outbound request concurrency."
-				required:    false
+				description: """
+					Configuration for outbound request concurrency.
+
+					This can be set either to one of the below enum values or to a positive integer, which denotes
+					a fixed concurrency limit.
+					"""
+				required: false
 				type: {
 					string: {
-						default: "none"
+						default: "adaptive"
 						enum: {
 							adaptive: """
 															Concurrency will be managed by Vector's [Adaptive Request Concurrency][arc] feature.
@@ -263,6 +284,101 @@ base: components: sinks: appsignal: configuration: {
 					default: 60
 					unit:    "seconds"
 				}
+			}
+		}
+	}
+	tls: {
+		description: "Configures the TLS options for incoming/outgoing connections."
+		required:    false
+		type: object: options: {
+			alpn_protocols: {
+				description: """
+					Sets the list of supported ALPN protocols.
+
+					Declare the supported ALPN protocols, which are used during negotiation with peer. They are prioritized in the order
+					that they are defined.
+					"""
+				required: false
+				type: array: items: type: string: examples: ["h2"]
+			}
+			ca_file: {
+				description: """
+					Absolute path to an additional CA certificate file.
+
+					The certificate must be in the DER or PEM (X.509) format. Additionally, the certificate can be provided as an inline string in PEM format.
+					"""
+				required: false
+				type: string: examples: ["/path/to/certificate_authority.crt"]
+			}
+			crt_file: {
+				description: """
+					Absolute path to a certificate file used to identify this server.
+
+					The certificate must be in DER, PEM (X.509), or PKCS#12 format. Additionally, the certificate can be provided as
+					an inline string in PEM format.
+
+					If this is set, and is not a PKCS#12 archive, `key_file` must also be set.
+					"""
+				required: false
+				type: string: examples: ["/path/to/host_certificate.crt"]
+			}
+			enabled: {
+				description: """
+					Whether or not to require TLS for incoming or outgoing connections.
+
+					When enabled and used for incoming connections, an identity certificate is also required. See `tls.crt_file` for
+					more information.
+					"""
+				required: false
+				type: bool: {}
+			}
+			key_file: {
+				description: """
+					Absolute path to a private key file used to identify this server.
+
+					The key must be in DER or PEM (PKCS#8) format. Additionally, the key can be provided as an inline string in PEM format.
+					"""
+				required: false
+				type: string: examples: ["/path/to/host_certificate.key"]
+			}
+			key_pass: {
+				description: """
+					Passphrase used to unlock the encrypted key file.
+
+					This has no effect unless `key_file` is set.
+					"""
+				required: false
+				type: string: examples: ["${KEY_PASS_ENV_VAR}", "PassWord1"]
+			}
+			verify_certificate: {
+				description: """
+					Enables certificate verification.
+
+					If enabled, certificates must not be expired and must be issued by a trusted
+					issuer. This verification operates in a hierarchical manner, checking that the leaf certificate (the
+					certificate presented by the client/server) is not only valid, but that the issuer of that certificate is also valid, and
+					so on until the verification process reaches a root certificate.
+
+					Relevant for both incoming and outgoing connections.
+
+					Do NOT set this to `false` unless you understand the risks of not verifying the validity of certificates.
+					"""
+				required: false
+				type: bool: {}
+			}
+			verify_hostname: {
+				description: """
+					Enables hostname verification.
+
+					If enabled, the hostname used to connect to the remote host must be present in the TLS certificate presented by
+					the remote host, either as the Common Name or as an entry in the Subject Alternative Name extension.
+
+					Only relevant for outgoing connections.
+
+					Do NOT set this to `false` unless you understand the risks of not verifying the remote hostname.
+					"""
+				required: false
+				type: bool: {}
 			}
 		}
 	}

@@ -89,6 +89,7 @@ pub struct MongoDbMetricsConfig {
     /// The interval between scrapes, in seconds.
     #[serde(default = "default_scrape_interval_secs")]
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
+    #[configurable(metadata(docs::human_name = "Scrape Interval"))]
     scrape_interval_secs: Duration,
 
     /// Overrides the default namespace for the metrics emitted by the source.
@@ -138,16 +139,16 @@ impl SourceConfig for MongoDbMetricsConfig {
             while interval.next().await.is_some() {
                 let start = Instant::now();
                 let metrics = join_all(sources.iter().map(|mongodb| mongodb.collect())).await;
-                let count = metrics.len();
                 emit!(CollectionCompleted {
                     start,
                     end: Instant::now()
                 });
 
-                let metrics = metrics.into_iter().flatten();
+                let metrics: Vec<Metric> = metrics.into_iter().flatten().collect();
+                let count = metrics.len();
 
-                if let Err(error) = cx.out.send_batch(metrics).await {
-                    emit!(StreamClosedError { error, count });
+                if (cx.out.send_batch(metrics).await).is_err() {
+                    emit!(StreamClosedError { count });
                     return Err(());
                 }
             }
