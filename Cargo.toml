@@ -941,3 +941,13 @@ name = "codecs"
 path = "benches/codecs/main.rs"
 harness = false
 required-features = ["codecs-benches"]
+
+[package.metadata.rpm.cargo]
+buildflags = ["--release"]
+
+[package.metadata.rpm.targets]
+vector = { path = "/usr/bin/vector" }
+
+[package.metadata.rpm.files]
+service = { path = "/usr/lib/systemd/system/vector.service" }
+
