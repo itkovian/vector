@@ -2159,7 +2159,7 @@ dependencies = [
  "similar-asserts",
  "smallvec",
  "snafu 0.7.5",
- "syslog_loose",
+ "syslog_loose 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tokio-util",
  "tracing 0.1.40",
@@ -3383,6 +3383,17 @@ name = "fallible-iterator"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
+
+[[package]]
+name = "fancy-regex"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "531e46835a22af56d1e3b66f04844bed63158bc094a628bec1d321d9b4c44bf2"
+dependencies = [
+ "bit-set",
+ "regex-automata 0.4.4",
+ "regex-syntax 0.8.2",
+]
 
 [[package]]
 name = "fastrand"
@@ -9162,6 +9173,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "syslog_loose"
+version = "0.21.0"
+source = "git+https://github.com/itkovian/syslog-loose?rev=7acfd39be5bd#7acfd39be5bdac043dee9955a9e59d839b0ce950"
+dependencies = [
+ "chrono",
+ "nom",
+]
+
+[[package]]
 name = "system-configuration"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10915,7 +10935,7 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 [[package]]
 name = "vrl"
 version = "0.18.0"
-source = "git+https://github.com/vectordotdev/vrl?rev=cfcef6626e9131fbce5f45e7d05a6d82bc9f7116#cfcef6626e9131fbce5f45e7d05a6d82bc9f7116"
+source = "git+https://github.com/itkovian/vrl?rev=d4e7f89712f9#d4e7f89712f9082a3f4a3a02bf3a290fbdbae59b"
 dependencies = [
  "aes",
  "ansi_term",
@@ -10945,6 +10965,7 @@ dependencies = [
  "domain",
  "dyn-clone",
  "exitcode",
+ "fancy-regex",
  "flate2",
  "grok",
  "hex",
@@ -10993,7 +11014,7 @@ dependencies = [
  "snafu 0.8.0",
  "snap",
  "strip-ansi-escapes",
- "syslog_loose",
+ "syslog_loose 0.21.0 (git+https://github.com/itkovian/syslog-loose?rev=7acfd39be5bd)",
  "termcolor",
  "thiserror",
  "tokio",
