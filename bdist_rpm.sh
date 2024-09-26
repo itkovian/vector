@@ -9,7 +9,7 @@ function test_and_exit() {
     fi
 }
 
-cargo install cargo-rpm
+cargo install cargo-generate-rpm
 
 cargo build --release --all-features; test_and_exit "stack build failed"
-cargo rpm build; test_and_exit "rpm creation failed"
+cargo generate-rpm; test_and_exit "rpm creation failed"
