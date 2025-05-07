@@ -9,7 +9,7 @@ license = "MPL-2.0"
 readme = "README.md"
 publish = false
 default-run = "vector"
-autobenches = false # our benchmarks are not runnable on their own either way
+autobenches = false                                                                    # our benchmarks are not runnable on their own either way
 # Minimum supported rust version
 # See docs/DEVELOPING.md for policy
 rust-version = "1.83"
@@ -59,14 +59,46 @@ section = "admin"
 maintainer-scripts = "distribution/debian/scripts/"
 conf-files = ["/etc/vector/vector.yaml", "/etc/default/vector"]
 assets = [
-  ["target/release/vector", "/usr/bin/", "755"],
-  ["config/vector.yaml", "/etc/vector/vector.yaml", "644"],
-  ["config/examples/*", "/etc/vector/examples/", "644"],
-  ["distribution/systemd/vector.service", "/lib/systemd/system/vector.service", "644"],
-  ["distribution/systemd/vector.default", "/etc/default/vector", "600"],
-  ["licenses/*", "/usr/share/vector/licenses/", "644"],
-  ["NOTICE", "/usr/share/vector/NOTICE", "644"],
-  ["LICENSE-3rdparty.csv", "/usr/share/vector/LICENSE-3rdparty.csv", "644"],
+    [
+        "target/release/vector",
+        "/usr/bin/",
+        "755",
+    ],
+    [
+        "config/vector.yaml",
+        "/etc/vector/vector.yaml",
+        "644",
+    ],
+    [
+        "config/examples/*",
+        "/etc/vector/examples/",
+        "644",
+    ],
+    [
+        "distribution/systemd/vector.service",
+        "/lib/systemd/system/vector.service",
+        "644",
+    ],
+    [
+        "distribution/systemd/vector.default",
+        "/etc/default/vector",
+        "600",
+    ],
+    [
+        "licenses/*",
+        "/usr/share/vector/licenses/",
+        "644",
+    ],
+    [
+        "NOTICE",
+        "/usr/share/vector/NOTICE",
+        "644",
+    ],
+    [
+        "LICENSE-3rdparty.csv",
+        "/usr/share/vector/LICENSE-3rdparty.csv",
+        "644",
+    ],
 ]
 license-file = ["target/debian-license.txt"]
 extended-description-file = "target/debian-extended-description.txt"
@@ -277,7 +309,9 @@ serde_yaml = { version = "0.9.34", default-features = false }
 
 # Messagepack
 rmp-serde = { version = "1.3.0", default-features = false, optional = true }
-rmpv = { version = "1.3.0", default-features = false, features = ["with-serde"], optional = true }
+rmpv = { version = "1.3.0", default-features = false, features = [
+    "with-serde",
+], optional = true }
 
 # Prost / Protocol Buffers
 prost = { workspace = true, optional = true }
@@ -337,16 +371,27 @@ glob.workspace = true
 governor = { version = "0.7.0", default-features = false, features = ["dashmap", "jitter", "std"], optional = true }
 h2 = { version = "0.4.9", default-features = false, optional = true }
 hash_hasher = { version = "2.0.0", default-features = false }
-hashbrown = { version = "0.14.5", default-features = false, optional = true, features = ["ahash"] }
+hashbrown = { version = "0.14.5", default-features = false, optional = true, features = [
+    "ahash",
+] }
 headers = { version = "0.3.9", default-features = false }
 hostname = { version = "0.4.0", default-features = false }
 http = { version = "0.2.9", default-features = false }
 http-1 = { package = "http", version = "1.0", default-features = false, features = ["std"] }
 http-serde = "1.1.3"
 http-body = { version = "0.4.5", default-features = false }
-hyper = { version = "0.14.28", default-features = false, features = ["client", "runtime", "http1", "http2", "server", "stream"] }
+hyper = { version = "0.14.28", default-features = false, features = [
+    "client",
+    "runtime",
+    "http1",
+    "http2",
+    "server",
+    "stream",
+] }
 hyper-openssl = { version = "0.9.2", default-features = false }
-hyper-proxy = { version = "0.9.1", default-features = false, features = ["openssl-tls"] }
+hyper-proxy = { version = "0.9.1", default-features = false, features = [
+    "openssl-tls",
+] }
 indexmap.workspace = true
 inventory = { version = "0.3.20", default-features = false }
 ipnet = { version = "2", default-features = false, optional = true, features = ["serde", "std"] }
@@ -357,7 +402,9 @@ listenfd = { version = "1.0.2", default-features = false, optional = true }
 lru = { version = "0.14.0", default-features = false, optional = true }
 maxminddb = { version = "0.26.0", default-features = false, optional = true, features = ["simdutf8"] }
 md-5 = { version = "0.10", default-features = false, optional = true }
-mongodb = { version = "2.8.2", default-features = false, features = ["tokio-runtime"], optional = true }
+mongodb = { version = "2.8.2", default-features = false, features = [
+    "tokio-runtime",
+], optional = true }
 async-nats = { version = "0.33.0", default-features = false, optional = true }
 nkeys = { version = "0.4.4", default-features = false, optional = true }
 nom = { version = "7.1.3", default-features = false, optional = true }
@@ -399,7 +446,9 @@ arr_macro = { version = "0.2.1" }
 
 # depending on fork for bumped nix dependency
 # https://github.com/heim-rs/heim/pull/360
-heim = { git = "https://github.com/vectordotdev/heim.git", branch = "update-nix", default-features = false, features = ["disk"] }
+heim = { git = "https://github.com/vectordotdev/heim.git", branch = "update-nix", default-features = false, features = [
+    "disk",
+] }
 
 # make sure to update the external docs when the Lua version changes
 mlua = { version = "0.10.3", default-features = false, features = ["lua54", "send", "vendored", "macros"], optional = true }
@@ -410,7 +459,10 @@ byteorder = "1.5.0"
 windows-service = "0.7.0"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.26.2", default-features = false, features = ["socket", "signal"] }
+nix = { version = "0.26.2", default-features = false, features = [
+    "socket",
+    "signal",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 netlink-packet-utils = "0.5.2"
@@ -422,7 +474,10 @@ netlink-sys = { version = "0.8.7", features = ["tokio_socket"] }
 prost-build = { workspace = true, optional = true }
 tonic-build = { workspace = true, optional = true }
 # update 'openssl_version' in website/config.toml whenever <major.minor> version changes
-openssl-src = { version = "300", default-features = false, features = ["force-engine", "legacy"] }
+openssl-src = { version = "300", default-features = false, features = [
+    "force-engine",
+    "legacy",
+] }
 
 [dev-dependencies]
 approx = "0.5.1"
@@ -462,17 +517,90 @@ ntapi = { git = "https://github.com/MSxDOS/ntapi.git", rev = "24fc1e47677fc9f6e3
 
 [features]
 # Default features for *-unknown-linux-gnu and *-apple-darwin
-default = ["api", "api-client", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka?/gssapi-vendored", "secrets"]
+default = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "rdkafka?/gssapi-vendored",
+    "secrets",
+]
 # Default features for `cargo docs`. The same as `default` but without `rdkafka?/gssapi-vendored` which would require installing libsasl in our doc build environment.
-docs = ["api", "api-client", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
+docs = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
 # Default features for *-unknown-linux-* which make use of `cmake` for dependencies
-default-cmake = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka?/gssapi-vendored", "secrets"]
+default-cmake = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "rdkafka?/gssapi-vendored",
+    "secrets",
+]
 # Default features for *-pc-windows-msvc
 # TODO: Enable SASL https://github.com/vectordotdev/vector/pull/3081#issuecomment-659298042
-default-msvc = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "transforms", "secrets"]
-default-musl = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka?/gssapi-vendored", "secrets"]
-default-no-api-client = ["api", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka?/gssapi-vendored", "secrets"]
-default-no-vrl-cli = ["api", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka?/gssapi-vendored", "secrets"]
+default-msvc = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "transforms",
+    "secrets",
+]
+default-musl = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "rdkafka?/gssapi-vendored",
+    "secrets",
+]
+default-no-api-client = [
+    "api",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "rdkafka?/gssapi-vendored",
+    "secrets",
+]
+default-no-vrl-cli = [
+    "api",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "rdkafka?/gssapi-vendored",
+    "secrets",
+]
 tokio-console = ["dep:console-subscriber", "tokio/tracing"]
 
 # Enables the binary secret-backend-example
@@ -484,18 +612,127 @@ all-metrics = ["sinks-metrics", "sources-metrics", "transforms-metrics"]
 # Target specific release features.
 # The `make` tasks will select this according to the appropriate triple.
 # Use this section to turn off or on specific features for specific triples.
-target-aarch64-unknown-linux-gnu = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
-target-aarch64-unknown-linux-musl = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
-target-armv7-unknown-linux-gnueabihf = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
-target-armv7-unknown-linux-musleabihf = ["api", "api-client", "rdkafka?/cmake_build", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "secrets"]
-target-arm-unknown-linux-gnueabi = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
-target-arm-unknown-linux-musleabi = ["api", "api-client", "rdkafka?/cmake_build", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "secrets"]
-target-x86_64-unknown-linux-gnu = ["api", "api-client", "rdkafka?/cmake_build", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka?/gssapi-vendored", "secrets"]
-target-x86_64-unknown-linux-musl = ["api", "api-client", "rdkafka?/cmake_build", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
+target-aarch64-unknown-linux-gnu = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
+target-aarch64-unknown-linux-musl = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
+target-armv7-unknown-linux-gnueabihf = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
+target-armv7-unknown-linux-musleabihf = [
+    "api",
+    "api-client",
+    "rdkafka?/cmake_build",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "secrets",
+]
+target-arm-unknown-linux-gnueabi = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
+target-arm-unknown-linux-musleabi = [
+    "api",
+    "api-client",
+    "rdkafka?/cmake_build",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "secrets",
+]
+target-x86_64-unknown-linux-gnu = [
+    "api",
+    "api-client",
+    "rdkafka?/cmake_build",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "rdkafka?/gssapi-vendored",
+    "secrets",
+]
+target-x86_64-unknown-linux-musl = [
+    "api",
+    "api-client",
+    "rdkafka?/cmake_build",
+    "enrichment-tables",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
 # Does not currently build
-target-powerpc64le-unknown-linux-gnu = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
+target-powerpc64le-unknown-linux-gnu = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
 # Currently doesn't build due to lack of support for 64-bit atomics
-target-powerpc-unknown-linux-gnu = ["api", "api-client", "enrichment-tables", "rdkafka?/cmake_build", "sinks", "sources", "sources-dnstap", "transforms", "unix", "secrets"]
+target-powerpc-unknown-linux-gnu = [
+    "api",
+    "api-client",
+    "enrichment-tables",
+    "rdkafka?/cmake_build",
+    "sinks",
+    "sources",
+    "sources-dnstap",
+    "transforms",
+    "unix",
+    "secrets",
+]
 
 # Enables features that work only on systems providing `cfg(unix)`
 unix = ["tikv-jemallocator", "allocation-tracing"]
@@ -509,20 +746,20 @@ docker = ["dep:bollard", "dep:dirs-next"]
 
 # API
 api = [
-  "dep:async-graphql",
-  "dep:async-graphql-warp",
-  "dep:base64",
-  "vector-lib/api",
+    "dep:async-graphql",
+    "dep:async-graphql-warp",
+    "dep:base64",
+    "vector-lib/api",
 ]
 
 # API client
 api-client = [
-  "dep:crossterm",
-  "dep:num-format",
-  "dep:number_prefix",
-  "dep:ratatui",
-  "vector-lib/api",
-  "vector-lib/api-client",
+    "dep:crossterm",
+    "dep:num-format",
+    "dep:number_prefix",
+    "dep:ratatui",
+    "vector-lib/api",
+    "vector-lib/api-client",
 ]
 
 aws-core = [
@@ -632,17 +869,37 @@ sources-internal_metrics = []
 sources-static_metrics = []
 sources-journald = []
 sources-kafka = ["dep:rdkafka"]
-sources-kubernetes_logs = ["vector-lib/file-source", "kubernetes", "transforms-reduce"]
+sources-kubernetes_logs = [
+    "vector-lib/file-source",
+    "kubernetes",
+    "transforms-reduce",
+]
 sources-logstash = ["sources-utils-net-tcp", "tokio-util/net"]
 sources-mongodb_metrics = ["dep:mongodb"]
 sources-nats = ["dep:async-nats", "dep:nkeys"]
 sources-nginx_metrics = ["dep:nom"]
 sources-opentelemetry = ["dep:hex", "vector-lib/opentelemetry", "dep:prost", "dep:prost-types", "sources-http_server", "sources-utils-http", "sources-utils-http-headers", "sources-vector"]
 sources-postgresql_metrics = ["dep:postgres-openssl", "dep:tokio-postgres"]
-sources-prometheus = ["sources-prometheus-scrape", "sources-prometheus-remote-write", "sources-prometheus-pushgateway"]
-sources-prometheus-scrape = ["sinks-prometheus", "sources-utils-http-client", "vector-lib/prometheus"]
-sources-prometheus-remote-write = ["sinks-prometheus", "sources-utils-http", "vector-lib/prometheus"]
-sources-prometheus-pushgateway = ["sinks-prometheus", "sources-utils-http", "vector-lib/prometheus"]
+sources-prometheus = [
+    "sources-prometheus-scrape",
+    "sources-prometheus-remote-write",
+    "sources-prometheus-pushgateway",
+]
+sources-prometheus-scrape = [
+    "sinks-prometheus",
+    "sources-utils-http-client",
+    "vector-lib/prometheus",
+]
+sources-prometheus-remote-write = [
+    "sinks-prometheus",
+    "sources-utils-http",
+    "vector-lib/prometheus",
+]
+sources-prometheus-pushgateway = [
+    "sinks-prometheus",
+    "sources-utils-http",
+    "vector-lib/prometheus",
+]
 sources-pulsar = ["dep:apache-avro", "dep:pulsar"]
 sources-redis = ["dep:redis"]
 sources-socket = ["sources-utils-net", "tokio-util/net"]
@@ -650,7 +907,12 @@ sources-splunk_hec = ["dep:roaring"]
 sources-statsd = ["sources-utils-net", "tokio-util/net"]
 sources-stdin = ["tokio-util/io"]
 sources-syslog = ["codecs-syslog", "sources-utils-net", "tokio-util/net"]
-sources-utils-http = ["sources-utils-http-auth", "sources-utils-http-encoding", "sources-utils-http-error", "sources-utils-http-prelude"]
+sources-utils-http = [
+    "sources-utils-http-auth",
+    "sources-utils-http-encoding",
+    "sources-utils-http-error",
+    "sources-utils-http-prelude",
+]
 sources-utils-http-auth = ["sources-utils-http-error"]
 sources-utils-http-encoding = ["sources-utils-http-error"]
 sources-utils-http-error = []
@@ -658,7 +920,11 @@ sources-utils-http-headers = []
 sources-utils-http-prelude = ["sources-utils-http", "sources-utils-http-auth", "sources-utils-http-encoding", "sources-utils-http-error"]
 sources-utils-http-query = []
 sources-utils-http-client = ["sources-utils-http", "sources-http_server"]
-sources-utils-net = ["sources-utils-net-tcp", "sources-utils-net-udp", "sources-utils-net-unix"]
+sources-utils-net = [
+    "sources-utils-net-tcp",
+    "sources-utils-net-udp",
+    "sources-utils-net-unix",
+]
 sources-utils-net-tcp = ["listenfd", "dep:ipnet"]
 sources-utils-net-udp = ["listenfd"]
 sources-utils-net-unix = []
@@ -766,20 +1032,20 @@ sinks-logs = [
   "sinks-websocket-server",
 ]
 sinks-metrics = [
-  "sinks-appsignal",
-  "sinks-aws_cloudwatch_metrics",
-  "sinks-blackhole",
-  "sinks-console",
-  "sinks-datadog_metrics",
-  "sinks-greptimedb_metrics",
-  "sinks-humio",
-  "sinks-influxdb",
-  "sinks-kafka",
-  "sinks-prometheus",
-  "sinks-sematext",
-  "sinks-statsd",
-  "sinks-vector",
-  "sinks-splunk_hec"
+    "sinks-appsignal",
+    "sinks-aws_cloudwatch_metrics",
+    "sinks-blackhole",
+    "sinks-console",
+    "sinks-datadog_metrics",
+    "sinks-greptimedb_metrics",
+    "sinks-humio",
+    "sinks-influxdb",
+    "sinks-kafka",
+    "sinks-prometheus",
+    "sinks-sematext",
+    "sinks-statsd",
+    "sinks-vector",
+    "sinks-splunk_hec",
 ]
 
 sinks-amqp = ["lapin"]
@@ -886,26 +1152,28 @@ amqp-integration-tests = ["sources-amqp", "sinks-amqp"]
 appsignal-integration-tests = ["sinks-appsignal"]
 
 aws-integration-tests = [
-  "aws-cloudwatch-logs-integration-tests",
-  "aws-cloudwatch-metrics-integration-tests",
-  "aws-ec2-metadata-integration-tests",
-  "aws-ecs-metrics-integration-tests",
-  "aws-kinesis-firehose-integration-tests",
-  "aws-kinesis-streams-integration-tests",
-  "aws-s3-integration-tests",
-  "aws-sqs-integration-tests",
-  "aws-sns-integration-tests",
+    "aws-cloudwatch-logs-integration-tests",
+    "aws-cloudwatch-metrics-integration-tests",
+    "aws-ec2-metadata-integration-tests",
+    "aws-ecs-metrics-integration-tests",
+    "aws-kinesis-firehose-integration-tests",
+    "aws-kinesis-streams-integration-tests",
+    "aws-s3-integration-tests",
+    "aws-sqs-integration-tests",
+    "aws-sns-integration-tests",
 ]
 
-azure-integration-tests = [
-  "azure-blob-integration-tests"
-]
+azure-integration-tests = ["azure-blob-integration-tests"]
 
 aws-cloudwatch-logs-integration-tests = ["sinks-aws_cloudwatch_logs"]
 aws-cloudwatch-metrics-integration-tests = ["sinks-aws_cloudwatch_metrics"]
 aws-ec2-metadata-integration-tests = ["transforms-aws_ec2_metadata"]
 aws-ecs-metrics-integration-tests = ["sources-aws_ecs_metrics"]
-aws-kinesis-firehose-integration-tests = ["sinks-aws_kinesis_firehose", "dep:aws-sdk-elasticsearch", "sinks-elasticsearch"]
+aws-kinesis-firehose-integration-tests = [
+    "sinks-aws_kinesis_firehose",
+    "dep:aws-sdk-elasticsearch",
+    "sinks-elasticsearch",
+]
 aws-kinesis-streams-integration-tests = ["sinks-aws_kinesis_streams"]
 aws-s3-integration-tests = ["sinks-aws_s3", "sources-aws_s3"]
 aws-sqs-integration-tests = ["sinks-aws_sqs"]
@@ -947,14 +1215,26 @@ splunk-integration-tests = ["sinks-splunk_hec"]
 dnstap-integration-tests = ["sources-dnstap", "dep:bollard"]
 webhdfs-integration-tests = ["sinks-webhdfs"]
 disable-resolv-conf = []
-shutdown-tests = ["api", "sinks-blackhole", "sinks-console", "sinks-prometheus", "sources", "transforms-lua", "transforms-remap", "unix"]
-cli-tests = ["sinks-blackhole", "sinks-socket", "sources-demo_logs", "sources-file"]
+shutdown-tests = [
+    "api",
+    "sinks-blackhole",
+    "sinks-console",
+    "sinks-prometheus",
+    "sources",
+    "transforms-lua",
+    "transforms-remap",
+    "unix",
+]
+cli-tests = [
+    "sinks-blackhole",
+    "sinks-socket",
+    "sources-demo_logs",
+    "sources-file",
+]
 test-utils = []
 
 # End-to-End testing-related features
-all-e2e-tests = [
-  "e2e-tests-datadog"
-]
+all-e2e-tests = ["e2e-tests-datadog"]
 
 e2e-tests-datadog = [
   "sources-datadog_agent",
@@ -964,52 +1244,68 @@ e2e-tests-datadog = [
 ]
 
 vector-api-tests = [
-  "sources-demo_logs",
-  "transforms-log_to_metric",
-  "transforms-remap",
-  "sinks-blackhole"
+    "sources-demo_logs",
+    "transforms-log_to_metric",
+    "transforms-remap",
+    "sinks-blackhole",
 ]
 vector-unit-test-tests = [
-  "sources-demo_logs",
-  "transforms-remap",
-  "transforms-route",
-  "transforms-filter",
-  "transforms-reduce",
-  "sinks-console"
+    "sources-demo_logs",
+    "transforms-remap",
+    "transforms-route",
+    "transforms-filter",
+    "transforms-reduce",
+    "sinks-console",
 ]
 
-component-validation-runner = ["dep:tonic", "sources-internal_logs", "sources-internal_metrics", "sources-vector", "sinks-vector"]
+component-validation-runner = [
+    "dep:tonic",
+    "sources-internal_logs",
+    "sources-internal_metrics",
+    "sources-vector",
+    "sinks-vector",
+]
 # For now, only include components that implement ValidatableComponent.
 # In the future, this can change to simply reference the targets `sources`, `transforms`, `sinks`
 component-validation-tests = [
-  "component-validation-runner",
-  "sources-http_client",
-  "sources-http_server",
-  "sinks-http",
-  "sinks-splunk_hec",
-  "sources-splunk_hec",
-  "sinks-datadog_logs",
-  "sources-datadog_agent",
+    "component-validation-runner",
+    "sources-http_client",
+    "sources-http_server",
+    "sinks-http",
+    "sinks-splunk_hec",
+    "sources-splunk_hec",
+    "sinks-datadog_logs",
+    "sources-datadog_agent",
 ]
 
 # Grouping together features for benchmarks. We exclude the API client due to it causing the build process to run out
 # of memory when those additional dependencies are built in CI.
 benches = [
-  "sinks-file",
-  "sinks-http",
-  "sinks-socket",
-  "sources-file",
-  "sources-socket",
-  "sources-syslog",
-  "transforms-lua",
-  "transforms-sample",
+    "sinks-file",
+    "sinks-http",
+    "sinks-socket",
+    "sources-file",
+    "sources-socket",
+    "sources-syslog",
+    "transforms-lua",
+    "transforms-sample",
 ]
 dnstap-benches = ["sources-dnstap"]
-language-benches = ["sinks-socket", "sources-socket", "transforms-lua", "transforms-remap"]
+language-benches = [
+    "sinks-socket",
+    "sources-socket",
+    "transforms-lua",
+    "transforms-remap",
+]
 # Separate benching process for metrics due to the nature of the bootstrap procedures.
 statistic-benches = []
 remap-benches = ["transforms-remap"]
-transform-benches = ["transforms-filter", "transforms-dedupe", "transforms-reduce", "transforms-route"]
+transform-benches = [
+    "transforms-filter",
+    "transforms-dedupe",
+    "transforms-reduce",
+    "transforms-route",
+]
 codecs-benches = []
 loki-benches = ["sinks-loki"]
 enrichment-tables-benches = ["enrichment-tables-geoip", "enrichment-tables-mmdb", "enrichment-tables-memory"]
@@ -1063,3 +1359,9 @@ name = "codecs"
 path = "benches/codecs/main.rs"
 harness = false
 required-features = ["codecs-benches"]
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/vector", dest = "/usr/bin/vector", mode = "755" },
+    { source = ".rpm/vector.service", dest = "/usr/lib/systemd/system/vector.service", mode = "644" },
+]

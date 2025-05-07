@@ -2336,7 +2336,7 @@ dependencies = [
  "similar-asserts",
  "smallvec",
  "snafu 0.7.5",
- "syslog_loose",
+ "syslog_loose 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tokio-util",
  "tracing 0.1.41",
@@ -10206,6 +10206,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "syslog_loose"
+version = "0.21.0"
+source = "git+https://github.com/itkovian/syslog-loose?rev=7acfd39be5bd#7acfd39be5bdac043dee9955a9e59d839b0ce950"
+dependencies = [
+ "chrono",
+ "nom",
+]
+
+[[package]]
 name = "system-configuration"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12046,8 +12055,8 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "vrl"
-version = "0.23.0"
-source = "git+https://github.com/vectordotdev/vrl?branch=main#7f8ed50af55b936c6da62a19dbbd966a8af903b6"
+version = "0.18.0"
+source = "git+https://github.com/itkovian/vrl?rev=d4e7f89712f9#d4e7f89712f9082a3f4a3a02bf3a290fbdbae59b"
 dependencies = [
  "aes",
  "aes-siv",
@@ -12134,7 +12143,7 @@ dependencies = [
  "snafu 0.8.0",
  "snap",
  "strip-ansi-escapes",
- "syslog_loose",
+ "syslog_loose 0.21.0 (git+https://github.com/itkovian/syslog-loose?rev=7acfd39be5bd)",
  "termcolor",
  "thiserror 2.0.3",
  "tokio",
