@@ -143,7 +143,7 @@ darling = { version = "0.20.11", default-features = false, features = ["suggesti
 flate2 = { version = "1.1.1", default-features = false, features = ["zlib-rs"] }
 futures = { version = "0.3.31", default-features = false, features = ["compat", "io-compat", "std"], package = "futures" }
 glob = { version = "0.3.2", default-features = false }
-hickory-proto = { version = "0.25.1", default-features = false, features = ["dnssec-ring"] }
+hickory-proto = { version = "0.25.2", default-features = false, features = ["dnssec-ring"] }
 indexmap = { version = "2.9.0", default-features = false, features = ["serde", "std"] }
 inventory = { version = "0.3" }
 indoc = { version = "2.0.6" }
@@ -335,7 +335,7 @@ flate2.workspace = true
 futures-util = { version = "0.3.29", default-features = false }
 glob.workspace = true
 governor = { version = "0.7.0", default-features = false, features = ["dashmap", "jitter", "std"], optional = true }
-h2 = { version = "0.4.9", default-features = false, optional = true }
+h2 = { version = "0.4.10", default-features = false, optional = true }
 hash_hasher = { version = "2.0.0", default-features = false }
 hashbrown = { version = "0.14.5", default-features = false, optional = true, features = ["ahash"] }
 headers = { version = "0.3.9", default-features = false }
@@ -394,7 +394,7 @@ thread_local = { version = "1.1.8", default-features = false, optional = true }
 typetag = { version = "0.2.20", default-features = false }
 url = { version = "2.5.4", default-features = false, features = ["serde"] }
 warp = { version = "0.3.7", default-features = false }
-zstd = { version = "0.13.0", default-features = false }
+zstd = { version = "0.13.3", default-features = false }
 arr_macro = { version = "0.2.1" }
 
 # depending on fork for bumped nix dependency
@@ -450,7 +450,7 @@ vector-lib = { workspace = true, features = ["test"] }
 vrl.workspace = true
 
 wiremock = "0.6.3"
-zstd = { version = "0.13.0", default-features = false }
+zstd = { version = "0.13.3", default-features = false }
 
 [patch.crates-io]
 # The upgrade for `tokio-util` >= 0.6.9 is blocked on https://github.com/vectordotdev/vector/issues/11257.
