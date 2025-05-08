@@ -10208,7 +10208,7 @@ dependencies = [
 [[package]]
 name = "syslog_loose"
 version = "0.21.0"
-source = "git+https://github.com/itkovian/syslog-loose?rev=7acfd39be5bd#7acfd39be5bdac043dee9955a9e59d839b0ce950"
+source = "git+https://github.com/itkovian/syslog-loose?rev=e221a9c647ee6822d39a423ef85caf30114e3923#e221a9c647ee6822d39a423ef85caf30114e3923"
 dependencies = [
  "chrono",
  "nom",
@@ -12055,8 +12055,8 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "vrl"
-version = "0.18.0"
-source = "git+https://github.com/itkovian/vrl?rev=d4e7f89712f9#d4e7f89712f9082a3f4a3a02bf3a290fbdbae59b"
+version = "0.23.0"
+source = "git+https://github.com/itkovian/vrl?rev=da0464348a8e#da0464348a8eaab398cf884ecd430a081b5b72fd"
 dependencies = [
  "aes",
  "aes-siv",
@@ -12143,7 +12143,7 @@ dependencies = [
  "snafu 0.8.0",
  "snap",
  "strip-ansi-escapes",
- "syslog_loose 0.21.0 (git+https://github.com/itkovian/syslog-loose?rev=7acfd39be5bd)",
+ "syslog_loose 0.21.0 (git+https://github.com/itkovian/syslog-loose?rev=e221a9c647ee6822d39a423ef85caf30114e3923)",
  "termcolor",
  "thiserror 2.0.3",
  "tokio",
