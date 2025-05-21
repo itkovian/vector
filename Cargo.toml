@@ -206,7 +206,7 @@ vector-lib = { path = "lib/vector-lib", default-features = false, features = ["v
 vector-config = { path = "lib/vector-config" }
 vector-config-common = { path = "lib/vector-config-common" }
 vector-config-macros = { path = "lib/vector-config-macros" }
-vrl = { git = "https://github.com/itkovian/vrl", rev = "da0464348a8e", features = ["arbitrary", "cli", "test", "test_framework"] }
+vrl = { git = "https://github.com/itkovian/vrl", rev = "2b56cd02fe88d7759af9e5366828554100853353", features = ["arbitrary", "cli", "test", "test_framework"] }
 
 [dependencies]
 cfg-if.workspace = true
