@@ -142,7 +142,7 @@ jobs:
       install: ${{ steps.filter.outputs.install }}
       k8s: ${{ steps.filter.outputs.k8s }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - uses: dorny/paths-filter@v3
       id: filter
@@ -240,7 +240,7 @@ jobs:
       webhdfs: ${{ steps.filter.outputs.webhdfs }}
       all-changes-json: ${{ steps.aggregate.outputs.all-changes-json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # creates a yaml file that contains the filters for each integration,
       # extracted from the output of the `vdev int ci-paths` command, which
@@ -319,7 +319,7 @@ jobs:
       datadog-logs: ${{ steps.filter.outputs.datadog-logs }}
       datadog-metrics: ${{ steps.filter.outputs.datadog-metrics }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # creates a yaml file that contains the filters for each test,
       # extracted from the output of the `vdev int ci-paths` command, which
