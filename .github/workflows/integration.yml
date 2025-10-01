@@ -85,7 +85,7 @@ jobs:
     outputs:
       can_access_secrets: ${{ steps.secret_access_check.outputs.can_access_secrets }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - run: sudo npm -g install @datadog/datadog-ci
       - run: sudo -E bash scripts/ci-free-disk-space.sh
@@ -123,7 +123,7 @@ jobs:
         ]
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: "recursive"
 

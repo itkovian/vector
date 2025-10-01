@@ -36,13 +36,13 @@ jobs:
 
       - name: (PR review) Checkout PR branch
         if: github.event_name == 'pull_request_review'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.review.commit_id }}
 
       - name: Checkout branch
         if: github.event_name != 'pull_request_review'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - run: sudo -E bash scripts/environment/bootstrap-ubuntu-24.04.sh
       - run: bash scripts/environment/prepare.sh
