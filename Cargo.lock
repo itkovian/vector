@@ -2325,8 +2325,8 @@ dependencies = [
  "influxdb-line-protocol",
  "memchr",
  "ordered-float 4.6.0",
- "prost 0.12.6",
- "prost-reflect",
+ "prost 0.13.3",
+ "prost-reflect 0.16.2",
  "rand 0.9.1",
  "regex",
  "rstest",
@@ -3236,8 +3236,8 @@ dependencies = [
  "dnsmsg-parser",
  "hickory-proto",
  "paste",
- "prost 0.12.6",
- "prost-build 0.12.6",
+ "prost 0.13.3",
+ "prost-build 0.14.1",
  "snafu 0.7.5",
  "tracing 0.1.41",
  "vector-lib",
@@ -4769,7 +4769,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.4.10",
+ "socket2 0.5.9",
  "tokio",
  "tower-service",
  "tracing 0.1.41",
@@ -5905,9 +5905,9 @@ name = "loki-logproto"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "prost 0.12.6",
- "prost-build 0.12.6",
- "prost-types 0.12.6",
+ "prost 0.13.3",
+ "prost-build 0.14.1",
+ "prost-types 0.14.1",
 ]
 
 [[package]]
@@ -7051,8 +7051,8 @@ dependencies = [
  "chrono",
  "hex",
  "ordered-float 4.6.0",
- "prost 0.12.6",
- "prost-build 0.12.6",
+ "prost 0.13.3",
+ "prost-build 0.14.1",
  "tonic 0.11.0",
  "tonic-build 0.11.0",
  "vector-core",
@@ -7744,9 +7744,9 @@ version = "0.1.0"
 dependencies = [
  "indexmap 2.9.0",
  "nom",
- "prost 0.12.6",
- "prost-build 0.12.6",
- "prost-types 0.12.6",
+ "prost 0.13.3",
+ "prost-build 0.14.1",
+ "prost-types 0.14.1",
  "snafu 0.7.5",
  "vector-common",
 ]
@@ -7813,6 +7813,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7231bd9b3d3d33c86b58adbac74b5ec0ad9f496b19d22801d773636feaa95f3d"
+dependencies = [
+ "bytes 1.10.1",
+ "prost-derive 0.14.1",
+]
+
+[[package]]
 name = "prost-build"
 version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7842,7 +7852,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes 1.10.1",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -7852,6 +7862,24 @@ dependencies = [
  "prost-types 0.12.6",
  "regex",
  "syn 2.0.101",
+ "tempfile",
+]
+
+[[package]]
+name = "prost-build"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac6c3320f9abac597dcbc668774ef006702672474aad53c6d596b62e487b40b1"
+dependencies = [
+ "heck 0.5.0",
+ "itertools 0.14.0",
+ "log",
+ "multimap",
+ "once_cell",
+ "petgraph",
+ "prost 0.14.1",
+ "prost-types 0.14.1",
+ "regex",
  "tempfile",
 ]
 
@@ -7875,7 +7903,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2 1.0.95",
  "quote 1.0.40",
  "syn 2.0.101",
@@ -7895,15 +7923,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9120690fafc389a67ba3803df527d0ec9cbbc9cc45e4cc20b332996dfb672425"
+dependencies = [
+ "anyhow",
+ "itertools 0.14.0",
+ "proc-macro2 1.0.95",
+ "quote 1.0.40",
+ "syn 2.0.101",
+]
+
+[[package]]
 name = "prost-reflect"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b5edd582b62f5cde844716e66d92565d7faf7ab1445c8cebce6e00fba83ddb2"
 dependencies = [
- "base64 0.22.1",
  "once_cell",
  "prost 0.13.3",
  "prost-types 0.13.3",
+]
+
+[[package]]
+name = "prost-reflect"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89a3ac73ec9a9118131a4594c9d336631a07852220a1d0ae03ee36b04503a063"
+dependencies = [
+ "base64 0.22.1",
+ "prost 0.14.1",
+ "prost-types 0.14.1",
  "serde",
  "serde-value",
 ]
@@ -7933,6 +7984,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4759aa0d3a6232fb8dbdb97b61de2c20047c68aca932c7ed76da9d788508d670"
 dependencies = [
  "prost 0.13.3",
+]
+
+[[package]]
+name = "prost-types"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9b4db3d6da204ed77bb26ba83b6122a73aeb2e87e25fbf7ad2e84c4ccbf8f72"
+dependencies = [
+ "prost 0.14.1",
 ]
 
 [[package]]
@@ -11614,10 +11674,10 @@ dependencies = [
  "postgres-openssl",
  "proptest",
  "proptest-derive",
- "prost 0.12.6",
- "prost-build 0.12.6",
- "prost-reflect",
- "prost-types 0.12.6",
+ "prost 0.13.3",
+ "prost-build 0.14.1",
+ "prost-reflect 0.16.2",
+ "prost-types 0.14.1",
  "pulsar",
  "quick-junit",
  "quickcheck",
@@ -11868,9 +11928,9 @@ dependencies = [
  "parking_lot",
  "pin-project",
  "proptest",
- "prost 0.12.6",
- "prost-build 0.12.6",
- "prost-types 0.12.6",
+ "prost 0.13.3",
+ "prost-build 0.14.1",
+ "prost-types 0.14.1",
  "quanta",
  "quickcheck",
  "quickcheck_macros",
@@ -12112,7 +12172,7 @@ dependencies = [
  "proptest",
  "proptest-derive",
  "prost 0.13.3",
- "prost-reflect",
+ "prost-reflect 0.14.7",
  "psl",
  "psl-types",
  "publicsuffix",
