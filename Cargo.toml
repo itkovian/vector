@@ -147,9 +147,9 @@ hickory-proto = { version = "0.25.1", default-features = false, features = ["dns
 indexmap = { version = "2.9.0", default-features = false, features = ["serde", "std"] }
 inventory = { version = "0.3" }
 indoc = { version = "2.0.6" }
-metrics = "0.24.2"
-metrics-tracing-context = { version = "0.17.0", default-features = false }
-metrics-util = { version = "0.18.0", default-features = false, features = ["registry"] }
+metrics = "0.24.3"
+metrics-tracing-context = { version = "0.18.1", default-features = false }
+metrics-util = { version = "0.20.1", default-features = false, features = ["registry"] }
 paste = { version = "1.0.15" }
 pin-project = { version = "1.1.10", default-features = false }
 proptest = { version = "1.6" }
