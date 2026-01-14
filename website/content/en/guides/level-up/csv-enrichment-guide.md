@@ -1,8 +1,9 @@
 ---
+date: "2021-12-06"
 title: Enrich your observability data
 short: Enrichment
 description: Learn how to use CSV enrichment to provide more context to your data
-author_github: https://github.com/barieom
+authors: ["barieom"]
 domain: enriching
 weight: 5
 tags: ["enrichment", "logs", "level up", "guides", "guide"]
@@ -14,7 +15,7 @@ Before you begin, this guide assumes the following:
 * You understand the [basic Vector concepts][concepts]
 * You understand [how to set up a basic pipeline][pipeline]
 
-[concepts]: /docs/about/concepts
+[concepts]: /docs/introduction/concepts
 [pipeline]: /docs/setup/quickstart
 {{< /requirement >}}
 

@@ -1,14 +1,84 @@
 use bytes::BytesMut;
 use tokio_util::codec::Encoder as _;
+#[cfg(feature = "codecs-arrow")]
+use vector_lib::codecs::encoding::ArrowStreamSerializer;
 use vector_lib::codecs::{
-    encoding::{Error, Framer, Serializer},
     CharacterDelimitedEncoder, NewlineDelimitedEncoder, TextSerializerConfig,
+    encoding::{Error, Framer, Serializer},
 };
 
 use crate::{
     event::Event,
     internal_events::{EncoderFramingError, EncoderSerializeError},
 };
+
+/// Serializers that support batch encoding (encoding all events at once).
+#[derive(Debug, Clone)]
+pub enum BatchSerializer {
+    /// Arrow IPC stream format serializer.
+    #[cfg(feature = "codecs-arrow")]
+    Arrow(ArrowStreamSerializer),
+}
+
+/// An encoder that encodes batches of events.
+#[derive(Debug, Clone)]
+pub struct BatchEncoder {
+    serializer: BatchSerializer,
+}
+
+impl BatchEncoder {
+    /// Creates a new `BatchEncoder` with the specified batch serializer.
+    pub const fn new(serializer: BatchSerializer) -> Self {
+        Self { serializer }
+    }
+
+    /// Get the batch serializer.
+    pub const fn serializer(&self) -> &BatchSerializer {
+        &self.serializer
+    }
+
+    /// Get the HTTP content type.
+    #[cfg(feature = "codecs-arrow")]
+    pub const fn content_type(&self) -> &'static str {
+        match &self.serializer {
+            BatchSerializer::Arrow(_) => "application/vnd.apache.arrow.stream",
+        }
+    }
+}
+
+impl tokio_util::codec::Encoder<Vec<Event>> for BatchEncoder {
+    type Error = Error;
+
+    #[allow(unused_variables)]
+    fn encode(&mut self, events: Vec<Event>, buffer: &mut BytesMut) -> Result<(), Self::Error> {
+        #[allow(unreachable_patterns)]
+        match &mut self.serializer {
+            #[cfg(feature = "codecs-arrow")]
+            BatchSerializer::Arrow(serializer) => {
+                serializer.encode(events, buffer).map_err(|err| {
+                    use vector_lib::codecs::encoding::ArrowEncodingError;
+                    match err {
+                        ArrowEncodingError::NullConstraint { .. } => {
+                            Error::SchemaConstraintViolation(Box::new(err))
+                        }
+                        _ => Error::SerializingError(Box::new(err)),
+                    }
+                })
+            }
+            _ => unreachable!("BatchSerializer cannot be constructed without encode()"),
+        }
+    }
+}
+
+/// An wrapper that supports both framed and batch encoding modes.
+#[derive(Debug, Clone)]
+pub enum EncoderKind {
+    /// Uses framing to encode individual events
+    Framed(Box<Encoder<Framer>>),
+    /// Encodes events in batches without framing
+    #[cfg(feature = "codecs-arrow")]
+    Batch(BatchEncoder),
+}
 
 #[derive(Debug, Clone)]
 /// An encoder that can encode structured events into byte frames.
@@ -93,12 +163,14 @@ impl Encoder<Framer> {
     }
 
     /// Get the suffix that encloses a batch of events.
-    pub const fn batch_suffix(&self) -> &[u8] {
-        match (&self.framer, &self.serializer) {
+    pub const fn batch_suffix(&self, empty: bool) -> &[u8] {
+        match (&self.framer, &self.serializer, empty) {
             (
                 Framer::CharacterDelimited(CharacterDelimitedEncoder { delimiter: b',' }),
                 Serializer::Json(_) | Serializer::NativeJson(_),
+                _,
             ) => b"]",
+            (Framer::NewlineDelimited(_), _, false) => b"\n",
             _ => &[],
         }
     }
@@ -126,6 +198,10 @@ impl Encoder<Framer> {
                 | Serializer::Text(_),
                 _,
             ) => "text/plain",
+            #[cfg(feature = "codecs-syslog")]
+            (Serializer::Syslog(_), _) => "text/plain",
+            #[cfg(feature = "codecs-opentelemetry")]
+            (Serializer::Otlp(_), _) => "application/x-protobuf",
         }
     }
 }
@@ -187,8 +263,7 @@ mod tests {
     use bytes::BufMut;
     use futures_util::{SinkExt, StreamExt};
     use tokio_util::codec::FramedWrite;
-    use vector_lib::codecs::encoding::BoxedFramingError;
-    use vector_lib::event::LogEvent;
+    use vector_lib::{codecs::encoding::BoxedFramingError, event::LogEvent};
 
     use super::*;
 
@@ -237,7 +312,7 @@ mod tests {
         fn encode(&mut self, _: (), dst: &mut BytesMut) -> Result<(), Self::Error> {
             self.0.encode((), dst)?;
             let result = if self.1 == self.2 {
-                Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "error")) as _)
+                Err(Box::new(std::io::Error::other("error")) as _)
             } else {
                 Ok(())
             };
@@ -322,5 +397,24 @@ mod tests {
         framed.flush().await.unwrap();
         let sink = framed.into_inner();
         assert_eq!(sink, b"(foo)(bar)");
+    }
+
+    #[tokio::test]
+    async fn test_encode_batch_newline() {
+        let encoder = Encoder::<Framer>::new(
+            Framer::NewlineDelimited(NewlineDelimitedEncoder::default()),
+            TextSerializerConfig::default().build().into(),
+        );
+        let source = futures::stream::iter(vec![
+            Event::Log(LogEvent::from("bar")),
+            Event::Log(LogEvent::from("baz")),
+            Event::Log(LogEvent::from("bat")),
+        ])
+        .map(Ok);
+        let sink: Vec<u8> = Vec::new();
+        let mut framed = FramedWrite::new(sink, encoder);
+        source.forward(&mut framed).await.unwrap();
+        let sink = framed.into_inner();
+        assert_eq!(sink, b"bar\nbaz\nbat\n");
     }
 }
