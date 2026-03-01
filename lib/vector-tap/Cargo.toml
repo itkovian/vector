@@ -25,7 +25,7 @@ vector-api-client = { path = "../vector-api-client" }
 vector-common = { path = "../vector-common" }
 vector-core = { path = "../vector-core" }
 vector-buffers = { path = "../vector-buffers" }
-futures-util = "0.3.30"
+futures-util = "0.3.32"
 
 [dev-dependencies]
 chrono = { workspace = true }
