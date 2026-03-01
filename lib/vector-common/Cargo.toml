@@ -54,5 +54,5 @@ vrl.workspace = true
 vector-config = { path = "../vector-config" }
 
 [dev-dependencies]
-futures = { version = "0.3.31", default-features = false, features = ["async-await"] }
+futures = { version = "0.3.32", default-features = false, features = ["async-await"] }
 tokio = { version = "1.44.2", default-features = false, features = ["rt", "time"] }
