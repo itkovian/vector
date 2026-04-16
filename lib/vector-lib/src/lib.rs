@@ -7,7 +7,6 @@ pub use file_source_common;
 #[cfg(feature = "api-client")]
 pub use vector_api_client as api_client;
 pub use vector_buffers as buffers;
-#[cfg(feature = "test")]
 pub use vector_common::event_test_util;
 pub use vector_common::{
     Error, NamedInternalEvent, Result, TimeZone, assert_event_data_eq, atomic, btreemap,

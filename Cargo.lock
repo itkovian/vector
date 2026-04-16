@@ -10875,6 +10875,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "syslog_loose"
+version = "0.21.0"
+source = "git+https://github.com/itkovian/syslog-loose?rev=e221a9c647ee6822d39a423ef85caf30114e3923#e221a9c647ee6822d39a423ef85caf30114e3923"
+dependencies = [
+ "chrono",
+ "nom",
+]
+
+[[package]]
 name = "system-configuration"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
