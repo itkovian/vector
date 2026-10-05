@@ -1270,3 +1270,9 @@ path = "benches/transform/main.rs"
 harness = false
 test = false
 required-features = ["transform-benches"]
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/vector", dest = "/usr/bin/vector", mode = "755" },
+    { source = ".rpm/vector.service", dest = "/usr/lib/systemd/system/vector.service", mode = "644" },
+]
