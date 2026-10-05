@@ -13915,7 +13915,6 @@ name = "vrl"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f05019654027a91520b942bf7fdd387147bb2855244bdf020952e795f74dfca0"
-version = "0.23.0"
 dependencies = [
  "aes 0.9.1",
  "aes-siv",
