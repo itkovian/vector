@@ -1,0 +1,16 @@
+[sources.stdin]
+type = "stdin"
+
+[transforms.lmod]
+inputs = ["stdin"]
+type="remap"
+source = """
+. = parse_key_value!(.message)
+
+"""
+
+[sinks.stdout]
+inputs = ["lmod"]
+type="console"
+target = "stdout"
+encoding.codec="json"

@@ -9,7 +9,7 @@ license = "MPL-2.0"
 readme = "README.md"
 publish = false
 default-run = "vector"
-autobenches = false # our benchmarks are not runnable on their own either way
+autobenches = false                                                                    # our benchmarks are not runnable on their own either way
 # Minimum supported rust version
 # See docs/DEVELOPING.md for policy
 rust-version = "1.95"
@@ -237,6 +237,7 @@ vector-lib = { path = "lib/vector-lib", default-features = false }
 vector-vrl-category = { path = "lib/vector-vrl/category" }
 vector-vrl-functions = { path = "lib/vector-vrl/functions", default-features = false }
 vrl = { default-features = false, features = ["arbitrary", "cli", "test", "test_framework", "stdlib-base"] , version = "0.35.0" }
+#vrl = { git = "https://github.com/itkovian/vrl", rev = "2b56cd02fe88d7759af9e5366828554100853353", features = ["arbitrary", "cli", "test", "test_framework"] }
 zstd = { version = "0.13.0", default-features = false }
 mock_instant = { version = "0.6" }
 serial_test = { version = "4.0" }
@@ -345,7 +346,9 @@ serde_yaml.workspace = true
 
 # Messagepack
 rmp-serde = { version = "1.3.0", default-features = false, optional = true }
-rmpv = { version = "1.3.0", default-features = false, features = ["with-serde"], optional = true }
+rmpv = { version = "1.3.0", default-features = false, features = [
+    "with-serde",
+], optional = true }
 
 # Prost / Protocol Buffers
 prost = { workspace = true, optional = true }
@@ -511,7 +514,10 @@ antithesis-instrumentation = { workspace = true, optional = true }
 prost-build = { workspace = true, optional = true }
 tonic-build = { workspace = true, optional = true }
 # update 'openssl_version' in website/config.toml whenever <major.minor> version changes
-openssl-src = { version = "300", default-features = false, features = ["force-engine", "legacy"] }
+openssl-src = { version = "300", default-features = false, features = [
+    "force-engine",
+    "legacy",
+] }
 
 [dev-dependencies]
 approx = "0.5.1"
@@ -763,7 +769,11 @@ sources-internal_metrics = []
 sources-static_metrics = []
 sources-journald = []
 sources-kafka = ["dep:rdkafka"]
-sources-kubernetes_logs = ["vector-lib/file-source", "kubernetes", "transforms-reduce"]
+sources-kubernetes_logs = [
+    "vector-lib/file-source",
+    "kubernetes",
+    "transforms-reduce",
+]
 sources-logstash = ["sources-utils-net-tcp", "tokio-util/net"]
 sources-mongodb_metrics = ["dep:mongodb"]
 sources-mqtt = ["dep:rumqttc"]
@@ -793,7 +803,12 @@ sources-splunk_hec = ["dep:roaring", "sources-utils-http-encoding"]
 sources-statsd = ["sources-utils-net", "tokio-util/net"]
 sources-stdin = ["tokio-util/io"]
 sources-syslog = ["codecs-syslog", "sources-utils-net", "tokio-util/net"]
-sources-utils-http = ["sources-utils-http-auth", "sources-utils-http-encoding", "sources-utils-http-error", "sources-utils-http-prelude"]
+sources-utils-http = [
+    "sources-utils-http-auth",
+    "sources-utils-http-encoding",
+    "sources-utils-http-error",
+    "sources-utils-http-prelude",
+]
 sources-utils-http-auth = ["sources-utils-http-error"]
 sources-utils-http-encoding = ["sources-utils-http-error"]
 sources-utils-http-error = []
@@ -801,7 +816,11 @@ sources-utils-http-headers = []
 sources-utils-http-prelude = ["sources-utils-http", "sources-utils-http-auth", "sources-utils-http-encoding", "sources-utils-http-error"]
 sources-utils-http-query = []
 sources-utils-http-client = ["sources-utils-http", "sources-http_server"]
-sources-utils-net = ["sources-utils-net-tcp", "sources-utils-net-udp", "sources-utils-net-unix"]
+sources-utils-net = [
+    "sources-utils-net-tcp",
+    "sources-utils-net-udp",
+    "sources-utils-net-unix",
+]
 sources-utils-net-tcp = ["listenfd", "dep:ipnet"]
 sources-utils-net-udp = ["listenfd"]
 sources-utils-net-unix = []
@@ -921,20 +940,20 @@ sinks-logs = [
   "sinks-websocket-server",
 ]
 sinks-metrics = [
-  "sinks-appsignal",
-  "sinks-aws_cloudwatch_metrics",
-  "sinks-blackhole",
-  "sinks-console",
-  "sinks-datadog_metrics",
-  "sinks-greptimedb_metrics",
-  "sinks-humio",
-  "sinks-influxdb",
-  "sinks-kafka",
-  "sinks-prometheus",
-  "sinks-sematext",
-  "sinks-statsd",
-  "sinks-vector",
-  "sinks-splunk_hec"
+    "sinks-appsignal",
+    "sinks-aws_cloudwatch_metrics",
+    "sinks-blackhole",
+    "sinks-console",
+    "sinks-datadog_metrics",
+    "sinks-greptimedb_metrics",
+    "sinks-humio",
+    "sinks-influxdb",
+    "sinks-kafka",
+    "sinks-prometheus",
+    "sinks-sematext",
+    "sinks-statsd",
+    "sinks-vector",
+    "sinks-splunk_hec",
 ]
 
 sinks-amqp = ["deadpool", "lapin", "async-rs"]
@@ -1046,15 +1065,15 @@ amqp-integration-tests = ["sources-amqp", "sinks-amqp"]
 appsignal-integration-tests = ["sinks-appsignal"]
 
 aws-integration-tests = [
-  "aws-cloudwatch-logs-integration-tests",
-  "aws-cloudwatch-metrics-integration-tests",
-  "aws-ec2-metadata-integration-tests",
-  "aws-ecs-metrics-integration-tests",
-  "aws-kinesis-firehose-integration-tests",
-  "aws-kinesis-streams-integration-tests",
-  "aws-s3-integration-tests",
-  "aws-sqs-integration-tests",
-  "aws-sns-integration-tests",
+    "aws-cloudwatch-logs-integration-tests",
+    "aws-cloudwatch-metrics-integration-tests",
+    "aws-ec2-metadata-integration-tests",
+    "aws-ecs-metrics-integration-tests",
+    "aws-kinesis-firehose-integration-tests",
+    "aws-kinesis-streams-integration-tests",
+    "aws-s3-integration-tests",
+    "aws-sqs-integration-tests",
+    "aws-sns-integration-tests",
 ]
 
 azure-integration-tests = [
@@ -1066,7 +1085,11 @@ aws-cloudwatch-logs-integration-tests = ["sinks-aws_cloudwatch_logs"]
 aws-cloudwatch-metrics-integration-tests = ["sinks-aws_cloudwatch_metrics"]
 aws-ec2-metadata-integration-tests = ["transforms-aws_ec2_metadata"]
 aws-ecs-metrics-integration-tests = ["sources-aws_ecs_metrics"]
-aws-kinesis-firehose-integration-tests = ["sinks-aws_kinesis_firehose", "dep:aws-sdk-elasticsearch", "sinks-elasticsearch"]
+aws-kinesis-firehose-integration-tests = [
+    "sinks-aws_kinesis_firehose",
+    "dep:aws-sdk-elasticsearch",
+    "sinks-elasticsearch",
+]
 aws-kinesis-streams-integration-tests = ["sinks-aws_kinesis_streams"]
 aws-s3-integration-tests = ["sinks-aws_s3", "sources-aws_s3"]
 aws-sqs-integration-tests = ["sinks-aws_sqs"]
@@ -1150,42 +1173,53 @@ vector-api-tests = [
   "sinks-blackhole"
 ]
 vector-unit-test-tests = [
-  "sources-demo_logs",
-  "transforms-remap",
-  "transforms-route",
-  "transforms-filter",
-  "transforms-reduce",
-  "sinks-console"
+    "sources-demo_logs",
+    "transforms-remap",
+    "transforms-route",
+    "transforms-filter",
+    "transforms-reduce",
+    "sinks-console",
 ]
 
-component-validation-runner = ["dep:tonic", "sources-internal_logs", "sources-internal_metrics", "sources-vector", "sinks-vector"]
+component-validation-runner = [
+    "dep:tonic",
+    "sources-internal_logs",
+    "sources-internal_metrics",
+    "sources-vector",
+    "sinks-vector",
+]
 # For now, only include components that implement ValidatableComponent.
 # In the future, this can change to simply reference the targets `sources`, `transforms`, `sinks`
 component-validation-tests = [
-  "component-validation-runner",
-  "sources-http_client",
-  "sources-http_server",
-  "sinks-http",
-  "sinks-splunk_hec",
-  "sources-splunk_hec",
-  "sinks-datadog_logs",
-  "sources-datadog_agent",
+    "component-validation-runner",
+    "sources-http_client",
+    "sources-http_server",
+    "sinks-http",
+    "sinks-splunk_hec",
+    "sources-splunk_hec",
+    "sinks-datadog_logs",
+    "sources-datadog_agent",
 ]
 
 # Grouping together features for benchmarks. We exclude the API client due to it causing the build process to run out
 # of memory when those additional dependencies are built in CI.
 benches = [
-  "sinks-file",
-  "sinks-http",
-  "sinks-socket",
-  "sources-file",
-  "sources-socket",
-  "sources-syslog",
-  "transforms-lua",
-  "transforms-sample",
+    "sinks-file",
+    "sinks-http",
+    "sinks-socket",
+    "sources-file",
+    "sources-socket",
+    "sources-syslog",
+    "transforms-lua",
+    "transforms-sample",
 ]
 dnstap-benches = ["sources-dnstap"]
-language-benches = ["sinks-socket", "sources-socket", "transforms-lua", "transforms-remap"]
+language-benches = [
+    "sinks-socket",
+    "sources-socket",
+    "transforms-lua",
+    "transforms-remap",
+]
 # Separate benching process for metrics due to the nature of the bootstrap procedures.
 statistic-benches = []
 remap-benches = ["transforms-remap"]
