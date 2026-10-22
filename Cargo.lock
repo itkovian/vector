@@ -2948,6 +2948,8 @@ dependencies = [
  "strum 0.28.0",
  "syslog_loose 0.23.0",
  "tempfile",
+ "snafu 0.7.5",
+ "syslog_loose 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tokio-util",
  "toml",
